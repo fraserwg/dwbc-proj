@@ -90,7 +90,6 @@ notebook-shim==0.1.0
 numba==0.55.1
 numcodecs==0.8.0
 numpy==1.21.5
-okapy @ file:///mnt/lustre/a2fs-work1/work/n01/n01/fwg/local-sites/okapy
 packaging==20.7
 pandas==1.1.5
 pandocfilters==1.4.3
