@@ -1,0 +1,17 @@
+ &RBCS_PARM01
+ useRBCuVel=.FALSE.,
+ useRBCvVel=.TRUE.,
+ useRBCtemp=.FALSE.,
+ tauRelaxV=1.,
+ tauRelaxU=1.,
+ tauRelaxT=1.,
+ relaxMaskVFile='./input/gammaV.data',
+ relaxVFile='./input/vvel.data',
+ relaxMaskFile='./input/gammaT.data'
+ relaxTFile='./input/Tinit.data'
+ /
+
+# Periodic parameters
+ &RBCS_PARM02
+ /
+ 

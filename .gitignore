@@ -1,0 +1,11 @@
+*.ipynb_checkpoints
+*__pycache__
+*dask-worker-space
+*.tmp
+src/mitgcm-models/build
+src/initial_condition_generation/eos80_legacy_gamma_n
+data/raw/run
+data/raw/GEBCO-bathymetry-data
+data/raw/climatological_stp.nc
+data/interim
+data/processed
