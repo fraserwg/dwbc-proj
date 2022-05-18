@@ -4,10 +4,10 @@ This git repository contains code and post-processing scripts used to produce th
 ## Requirements
 The file `requirements.txt` details the dependencies of this repository. A python virtual environment should easily be creatable from it using `pip`. 
 
-## Data
+## data
 All processed data and selected raw data can be downloaded from !Insert zenodo link!. 
 
-## Code
+## src
 The src directory contains MITgcm configuration files, initial condition generation codes and post-processing codes
 
 ### initial_condition_generation
@@ -27,7 +27,7 @@ The `subset_data.py` file reads in the raw binary model output, processes it and
 
 `plot_figures.py` reads in the processed data and creates the figures published in Goldsworth et al. (2022).
 
-## Figures
+## figures
 This folder contains the `pdf` figures from the paper
 
 ## Reports
