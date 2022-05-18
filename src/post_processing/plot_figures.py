@@ -219,7 +219,7 @@ if figure2:
     fig.savefig(figure_path / 'Figure2.pdf', dpi=dpi)
 
 
-if figure3:
+if figure4:
     logging.info('Plotting potential vorticity')
     
     cmo.curl.set_bad('grey')
@@ -252,7 +252,7 @@ if figure3:
     slice_cbax = fig.add_subplot(gs[3, :])
     #big_cbax = fig.add_subplot(gs[0:, 0])
 
-    big_Q_ax.set_title('$\sigma = 28$')
+    big_Q_ax.set_title('$\sigma = 28.04$')
     slice_ax1.set_title('Equator')
     slice_ax2.set_title('250 km South')
     slice_ax3.set_title('500 km South')
@@ -310,10 +310,10 @@ if figure3:
 
     fig.tight_layout()
 
-    fig.savefig(figure_path / 'Figure3.pdf', dpi=dpi)
+    fig.savefig(figure_path / 'Figure4.pdf', dpi=dpi)
 
     
-if figure3 and thesiscover:
+if figure4 and thesiscover:
     logging.info('Plotting thesis cover image')
     
     fig, ax = plt.subplots(frameon=True, figsize=(12, 12))
@@ -326,7 +326,7 @@ if figure3 and thesiscover:
     fig.savefig(figure_path / 'ThesisCover.png', dpi=600)
     
 
-if figure4:
+if figure3:
     logging.info('Plotting overturning mechanisms')
     
     ds_overturning = xr.open_dataset(processed_path / 'overturning.nc')
@@ -389,6 +389,6 @@ if figure4:
 
     fig.tight_layout()
 
-    fig.savefig(figure_path / 'Figure4.pdf', dpi=dpi)
+    fig.savefig(figure_path / 'Figure3.pdf', dpi=dpi)
     
     
