@@ -13,7 +13,7 @@ import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from matplotlib.patches import Patch
+from matplotlib.patches import Rectangle
 from matplotlib import colors, rc
 import cartopy.feature as cfeature
 import cartopy.crs as ccrs
@@ -21,7 +21,7 @@ from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 import cmocean.cm as cmo
 
 
-figure1 = False
+figure1 = True
 figure2 = True
 thesiscover = True
 figure3 = True
@@ -60,10 +60,11 @@ if figure1:
     # Open the datasats
     ds_init = xr.open_dataset(processed_path / 'init.nc')
     ds_bathymetry = xr.open_dataset(raw_path / 'GEBCO-bathymetry-data/gebco_2021_n30.0_s-30.0_w-85.0_e-10.0.nc')
+    ds_bathymetry = ds_bathymetry.coarsen(lon=5, lat=5, boundary='trim').mean()
     ds_climatological_gamma_n = xr.open_dataset(processed_path / 'climatological_gamman.nc', decode_times=False)
 
     # Set up the canvas
-    fig = plt.figure(figsize=(text_width, 10 * cm))
+    fig = plt.figure(figsize=(text_width, 8.5 * cm))
 
     gs = gridspec.GridSpec(2, 2,
                            width_ratios=[1, 1],
@@ -89,6 +90,12 @@ if figure1:
                                                  edgecolor='face',
                                                  facecolor='grey'
                                                 ))
+    
+    y0 = ds_climatological_gamma_n['lat'].min()
+    ywid = ds_climatological_gamma_n['lat'].max() - y0
+    x0 = ds_climatological_gamma_n['lon'].min()
+    xwid = ds_climatological_gamma_n['lon'].max() - x0
+    ax1.add_patch(Rectangle((x0, y0), xwid, ywid, ec='red', fc='none'))
 
     # Axes limits, labels and features
     ax1.axhline(0, c='k', ls='--')
@@ -124,7 +131,7 @@ if figure1:
     cmo.tempo_r.set_bad('grey')
     cax = ax2.pcolormesh(ds_init['XC'] * 1e-3,
                          -ds_init['Z'],
-                         ds_init['V_init'],
+                         ds_init['V_init'] * 1e2,
                          vmin=-20,
                          vmax=0,
                          shading='nearest',
@@ -149,12 +156,12 @@ if figure1:
                           ls='--'
                          )
 
-    axins.set_xlabel('$\\sigma$ (kg$\,$m$^{-3}$)', labelpad=2, loc='right')
-    axins.set_xlim(15,29)
+    axins.set_xlabel('$\\sigma$ (kg$\,$m$^{-3}$)', labelpad=3, loc='center')
+    axins.set_xlim(20,29)
     axins.set_xticks(range(22, 29))
 
     ax2.legend([ln_id, ln_clim], ['Idealised', 'Climatological'], loc='lower center')
-    ax2.set_ylim(ZV[-1] ,0)
+    ax2.set_ylim(-ds_init['Z'][-1] ,0)
 
     fig.tight_layout()
     fig.savefig(figure_path / 'Figure1.pdf', dpi=dpi)
@@ -166,7 +173,7 @@ if figure2:
     da_dbdz = xr.open_dataarray(processed_path / 'dbdz_slice.nc')
     X, Z = da_dbdz['XC'] * 1e-3, -da_dbdz['Zl']
     
-    fig = plt.figure(figsize=(text_width, 10 * cm))
+    fig = plt.figure(figsize=(text_width, 8.5 * cm))
 
     gs = gridspec.GridSpec(2, 3,
                            width_ratios=[1, 1, 1],
@@ -333,7 +340,7 @@ if figure3:
     #rho_3, zetay_3 = xr.open_dataarray('rho3.nc'), xr.open_dataarray('zeta_y.nc')
     da_zeta_y_slice = xr.open_dataarray(processed_path / 'zeta_y_slice.nc')
     
-    fig = plt.figure(figsize=(text_width, 10 * cm))
+    fig = plt.figure(figsize=(text_width, 8.5 * cm))
 
     gs = gridspec.GridSpec(2, 2,
                            width_ratios=[1, 1],
@@ -391,4 +398,4 @@ if figure3:
 
     fig.savefig(figure_path / 'Figure3.pdf', dpi=dpi)
     
-    
+logging.info('Plotting complete')
