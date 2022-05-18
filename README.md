@@ -30,7 +30,7 @@ The `subset_data.py` file reads in the raw binary model output, processes it and
 ## figures
 This folder contains the `pdf` figures from the paper
 
-## Reports
+## reports
 This folder contains a pre-print of Goldsworth et al. (2022).
 
 ## References
