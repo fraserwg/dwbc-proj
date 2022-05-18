@@ -29,7 +29,7 @@ figure4 = True
 
 
 logging.info('Setting paths')
-base_path = Path('/work/n01/n01/fwg/dwbc/dwbc-proj')
+base_path = Path('/work/n01/n01/fwg/dwbc-proj')
 raw_path = base_path / 'data/raw'
 processed_path = base_path / 'data/processed'
 figure_path = base_path / 'figures'
@@ -52,6 +52,8 @@ cm = 1/2.54
 dpi = 300
 
 
+text_width = 5.5  # in inches
+
 if figure1:
     logging.info('Plotting initial and boundary conditions')
 
@@ -61,7 +63,7 @@ if figure1:
     ds_climatological_gamma_n = xr.open_dataset(processed_path / 'climatological_gamman.nc', decode_times=False)
 
     # Set up the canvas
-    fig = plt.figure(figsize=(19 * cm, 10 * cm))
+    fig = plt.figure(figsize=(text_width, 10 * cm))
 
     gs = gridspec.GridSpec(2, 2,
                            width_ratios=[1, 1],
@@ -164,7 +166,7 @@ if figure2:
     da_dbdz = xr.open_dataarray(processed_path / 'dbdz_slice.nc')
     X, Z = da_dbdz['XC'] * 1e-3, -da_dbdz['Zl']
     
-    fig = plt.figure(figsize=(19 * cm, 11.5 * cm))
+    fig = plt.figure(figsize=(text_width, 10 * cm))
 
     gs = gridspec.GridSpec(2, 3,
                            width_ratios=[1, 1, 1],
@@ -180,9 +182,9 @@ if figure2:
 
     cbax = plt.subplot(gs[3:])
 
-    ax1.set_title('200 km South')
-    ax2.set_title('500 km South')
-    ax3.set_title('600 km South')
+    ax1.set_title('Equator')
+    ax2.set_title('250 km South')
+    ax3.set_title('500 km South')
 
     ax1.set_title('(a)', loc='left')
     ax2.set_title('(b)', loc='left')
@@ -204,10 +206,13 @@ if figure2:
     ax2.set_xlim(0, 300)
     ax3.set_xlim(0, 300)
 
-    ax1.axvline(90, c='magenta')
+    ax2.axvline(90, c='magenta')
 
     cb = plt.colorbar(cax, cax=cbax, orientation='horizontal', label='$\partial_z$b (m$\,$s$^{-2})$')
     cb.formatter.set_useMathText(True)
+    
+    yticks = [0, 1000, 2000, 3000, 4000]
+    ax1.set_yticks(yticks)
 
     fig.tight_layout()
 
@@ -228,7 +233,7 @@ if figure3:
     da_Q_slice = xr.open_dataarray(processed_path / 'Q_slice.nc')
     X, Z = da_Q_slice['XC'] * 1e-3, -da_Q_slice['Z']
     
-    fig = plt.figure(figsize=(19 * cm, 23 * cm))
+    fig = plt.figure(figsize=(text_width, 23 * cm))
 
     gs = gridspec.GridSpec(4, 2,
                            width_ratios=[1, 1],
@@ -249,7 +254,7 @@ if figure3:
 
     big_Q_ax.set_title('$\sigma = 28$')
     slice_ax1.set_title('Equator')
-    slice_ax2.set_title('200 km South')
+    slice_ax2.set_title('250 km South')
     slice_ax3.set_title('500 km South')
 
     big_Q_ax.set_title('(a)', loc='left')
@@ -265,6 +270,11 @@ if figure3:
     slice_ax1.set_ylabel('Depth (m)')
     slice_ax2.set_ylabel('Depth (m)')
     slice_ax3.set_ylabel('Depth (m)')
+    
+    yticks = [0, 1000, 2000, 3000, 4000]
+    slice_ax1.set_yticks(yticks)
+    slice_ax2.set_yticks(yticks)
+    slice_ax3.set_yticks(yticks)
 
     big_Q_cax = big_Q_ax.pcolormesh(X_bigQ, Y_bigQ, C_bigQ, cmap=Qcmap, shading='nearest',
                                     vmin=-Qlim, vmax=Qlim, rasterized=True)
@@ -275,10 +285,10 @@ if figure3:
 
 
     big_Q_ax.axhline(0, label='Equator', ls='-', c='k')
-    big_Q_ax.axhline(-200, label='200 km South', ls=':', c='k')
+    big_Q_ax.axhline(-250, label='250 km South', ls=':', c='k')
     big_Q_ax.axhline(-500, label='500 km South', ls='-.', c='k')
-    big_Q_ax.axhline(-600, label='600 km south', ls='--', c='k')
-    big_Q_ax.scatter(90, -200, label='Profile point', marker='o', c='magenta', linewidths=2)
+    #big_Q_ax.axhline(-600, label='600 km south', ls='--', c='k')
+    big_Q_ax.scatter(90, -250, label='Profile point', marker='o', c='magenta', linewidths=2)
 
     slice_ax2.axvline(90, c='magenta')
 
@@ -287,7 +297,7 @@ if figure3:
     slice_ax3.set_xlim(0, 300)
 
     big_Q_ax.set_aspect('equal')
-    big_Q_ax.set_ylim(-1500, 500)
+    big_Q_ax.set_ylim(-1800, 500)
 
     slice_ax1.invert_yaxis()
     slice_ax2.invert_yaxis()
@@ -303,7 +313,7 @@ if figure3:
     fig.savefig(figure_path / 'Figure3.pdf', dpi=dpi)
 
     
-if figure2 and thesiscover:
+if figure3 and thesiscover:
     logging.info('Plotting thesis cover image')
     
     fig, ax = plt.subplots(frameon=True, figsize=(12, 12))
@@ -323,7 +333,7 @@ if figure4:
     #rho_3, zetay_3 = xr.open_dataarray('rho3.nc'), xr.open_dataarray('zeta_y.nc')
     da_zeta_y_slice = xr.open_dataarray(processed_path / 'zeta_y_slice.nc')
     
-    fig = plt.figure(figsize=(19 * cm, 10 * cm))
+    fig = plt.figure(figsize=(text_width, 10 * cm))
 
     gs = gridspec.GridSpec(2, 2,
                            width_ratios=[1, 1],
@@ -364,7 +374,7 @@ if figure4:
 
     ax_overturn.set_xlabel('Longitude (km)')
     ax_overturn.set_ylabel('Depth (m)')
-    ax_overturn.set_title('Meridional component of relative vorticity')
+    ax_overturn.set_title('Meridional relative vorticity')
     ax_overturn.set_title('(a)', loc='left')
 
     # Colorbar

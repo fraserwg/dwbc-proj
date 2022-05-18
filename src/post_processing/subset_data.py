@@ -23,9 +23,11 @@ import pvcalc
 
 
 logging.info('Setting paths')
-base_path = Path('/work/n01/n01/fwg/dwbc/dwbc-proj')
+base_path = Path('/work/n01/n01/fwg/dwbc-proj')
 
 log_path = base_path / 'src/post_processing/.tmp/slurm-out'
+dask_worker_path = base_path / 'src/post_processing/.tmp/dask-worker-space'
+
 env_path = Path('/work/n01/n01/fwg/venvs/parallel-base/bin/activate')
 run_path = base_path / 'data/raw/run'
 processed_path = base_path / 'data/processed'
@@ -41,6 +43,7 @@ scluster = SLURMCluster(queue='standard',
                         project="n01-siAMOC",
                         job_cpu=128,
                         log_directory=log_path,
+                        local_directory=dask_worker_path,
                         cores=128,
                         processes=32,  # Can change this
                         memory="256 GiB",
@@ -121,25 +124,25 @@ ds_init.to_netcdf(processed_path / 'init.nc')
 
 
 logging.info('Creating overturning mechanism datasets')
-rho_3 = ds['rho'].isel(time=slice(-10, -1)).sel(YC=-200e3, XC=90e3, method='nearest').mean('time')
-zetay_3 = ds['zeta_y'].isel(time=slice(-10, -1)).sel(YC=-200e3, XG=90e3, method='nearest').mean('time')
+rho_3 = ds['rho'].isel(time=slice(-10, -1)).sel(YC=-250e3, XC=90e3, method='nearest').mean('time')
+zetay_3 = ds['zeta_y'].isel(time=slice(-10, -1)).sel(YC=-250e3, XG=90e3, method='nearest').mean('time')
 ds_overturning = xr.Dataset({'zeta_y': zetay_3, 'rho': rho_3})
 ds_overturning.to_netcdf(processed_path / 'overturning.nc')
 
 
 logging.info('Creating stratification slice dataset')
-ylats = [-200e3, -500e3, -600e3]
+ylats = [-0, -250e3, -500e3]
 dbdz_slice = ds['db_dz'].isel(time=-1).sel(YC=ylats, method='nearest') * np.swapaxes(np.tile(slice_nan_land_mask, (len(ylats), 1, 1)), 0, 1)
 dbdz_slice.to_netcdf(processed_path / 'dbdz_slice.nc')
 
 
 logging.info('Creating meridional vorticity slice dataset')
-zetay_slice = ds['zeta_y'].isel(time=slice(-10, -1)).sel(YC=-200e3, method='nearest').mean('time') * slice_nan_land_mask
+zetay_slice = ds['zeta_y'].isel(time=slice(-10, -1)).sel(YC=-250e3, method='nearest').mean('time') * slice_nan_land_mask
 zetay_slice.to_netcdf(processed_path / 'zeta_y_slice.nc')
 
 
 logging.info('Creating potential vorticity slice dataset')
-ylats = [0, -200e3, -500e3]
+ylats = [-0, -250e3, -500e3]
 Q_slice = ds['Q'].isel(time=-1).sel(YC=ylats, method='ffill') * np.swapaxes(np.tile(slice_nan_land_mask, (len(ylats), 1, 1)), 0, 1)
 Q_slice.to_netcdf(processed_path / 'Q_slice.nc')
 
