@@ -13,6 +13,10 @@ def create_xgcm_grid(ds):
 def create_drL_from_dataset(ds):
     drL = - ds['drC'].isel(Zp1=slice(0, -1)).rename({'Zp1': 'Zl'})
     return drL
+
+
+def create_drU_from_dataset(ds):
+    drU = - ds['drC'].isel(Zp1=slice(1, None)).rename({'Zp1': 'Zu'})
     
 
 def calculate_density(da_rho_anom, da_rho_ref):
@@ -59,6 +63,35 @@ def calculate_curl_velocity(da_u, da_v, da_w, ds_grid, grid, no_slip_bottom, no_
     zeta_z = dvdx - dudy
 
     return zeta_x, zeta_y, zeta_z
+
+
+def calculate_C_potential_vorticity(zeta_x, zeta_y, zeta_z, b, ds_grid, grid, beta, f0, fprime=0):
+    """ clauclates the potential vorticity using the C-grid formula
+    
+    Notes
+    -----
+    * See Morel et al. (Ocean Modelling, 2019) for full details of
+        the algorithm employed here.
+    """
+    
+    zi_x = zeta_x
+    zi_y = zeta_y + fprime
+    zi_z = zeta_z + f0 + beta * ds_grid['YG']
+    
+    b_x = grid.interp(b, to={'Z': 'right', 'Y': 'left'}, axis=['Y', 'Z'], boundary='extend')
+    b_y = grid.interp(b, to={'Z': 'right', 'X': 'left'}, axis=['X', 'Z'], boundary='extend')
+    b_z = grid.interp(b, axis=['X', 'Y'], boundary='extend')
+    
+    zi_b_x = zi_x * b_x
+    zi_b_y = zi_y * b_y
+    zi_b_z = zi_z * b_z
+
+    Q_x = grid.diff(zi_b_x, axis='X', boundary='extend') / ds_grid['dxV']
+    Q_y = grid.diff(zi_b_y, axis='Y', boundary='extend') / ds_grid['dyU']
+    Q_z = grid.diff(zi_b_z, to='right', axis='Z', boundary='extend') / ds_grid['drL']
+    
+    Q = Q_x + Q_y + Q_z
+    return Q
 
 def calculate_potential_vorticity(zeta_x, zeta_y, zeta_z, dbdx, dbdy, dbdz, ds_grid, grid, beta, f0):
     zeta_x_interp = grid.interp(zeta_x, axis=['Y', 'Z'], boundary=boundz)
