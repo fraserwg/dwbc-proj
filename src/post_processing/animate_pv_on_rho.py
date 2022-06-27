@@ -33,7 +33,7 @@ processed_path = base_path / 'data/processed'
 in_path = processed_path / 'PV_on_rho'
 frame_path = base_path / 'figures/PV_frames'
 
-dpi = 300
+dpi = 342
 
 # Check paths exist etc.
 if not log_path.exists(): log_path.mkdir()
@@ -77,15 +77,14 @@ no_slip_bottom = data_nml['parm01']['no_slip_bottom']
 no_slip_sides = data_nml['parm01']['no_slip_sides']
 
 
-logging.info('Reading in the model dataset')
+logging.info('Reading in the PV dataset')
 ds = xr.open_dataset(in_path, engine='zarr')
 
 Qlim = 4e-11
-cmo.curl.set_bad('grey')
-
 
 @dask.delayed()
 def plot_pv(nt):
+    cmo.curl.set_bad('grey')
     Q = ds['Q'].isel(time=nt).squeeze()
     X, Y = ds['XG'] * 1e-3, ds['YG'] * 1e-3
     tdays = float(Q['time'].values) * 1e-9 / 24 / 60 / 60
@@ -96,7 +95,7 @@ def plot_pv(nt):
                         cmap=cmo.curl,
                         vmin=-Qlim,
                         vmax=Qlim)
-    cb = fig.colorbar(cax, ax=ax, label='Q (s$^{-3}$)')
+    cb = fig.colorbar(cax, ax=ax, label='Q (s$^{-3}$)', aspect=40)
     cb.formatter.set_useMathText(True)
     
     ax.set_xlabel('Longitude (km)')
