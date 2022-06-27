@@ -32,7 +32,7 @@ dask_worker_path = base_path / 'src/post_processing/.tmp/dask-worker-space'
 env_path = Path('/work/n01/n01/fwg/dwbc-proj/dwbc-proj/bin/activate')
 run_path = base_path / 'data/raw/run'
 processed_path = base_path / 'data/processed'
-out_path = processed_path / 'PV_on_rho'
+out_path = processed_path / 'PV_on_rho2'
 
 # Check paths exist etc.
 if not log_path.exists(): log_path.mkdir()
@@ -50,7 +50,7 @@ scluster = SLURMCluster(queue='standard',
                         processes=8,  # Can change this
                         memory="256 GiB",
                         header_skip= ['#SBATCH --mem='],  
-                        walltime="06:00:00",
+                        walltime="01:00:00",
                         death_timeout=60,
                         interface='hsn0',
                         job_extra=['--qos=standard'], #, '--reservation=shortqos'],
@@ -123,7 +123,7 @@ rho_t.name = 'rho'
 target_rho_levels = ds['rhoRef'].sel(Z=[-2750], method='nearest').values  # -2750 m is the jet core
 
 # Create a 2D mask which sets land points to nan
-masked_rho = ds['rho'].isel(time=-1) * ds['nan_land_mask']
+masked_rho = ds['rho'] * ds['nan_land_mask']
 land_point_zeros = xr.where(masked_rho >= target_rho_levels, 1, 0).sum('Z') # Where zero, land, else water
 target_rho_mask = xr.where(land_point_zeros == 0, np.nan, 1)
 
