@@ -93,6 +93,7 @@ def calculate_C_potential_vorticity(zeta_x, zeta_y, zeta_z, b, ds_grid, grid, be
     Q = Q_x + Q_y + Q_z
     return Q
 
+
 def calculate_potential_vorticity(zeta_x, zeta_y, zeta_z, dbdx, dbdy, dbdz, ds_grid, grid, beta, f0):
     zeta_x_interp = grid.interp(zeta_x, axis=['Y', 'Z'], boundary=boundz)
     zeta_y_interp = grid.interp(zeta_y, axis=['X', 'Z'], boundary=boundz)

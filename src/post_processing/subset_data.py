@@ -96,17 +96,20 @@ ds['zeta_x'], ds['zeta_y'], ds['zeta_z'] = pvcalc.calculate_curl_velocity(ds['UV
                                                                           no_slip_sides
                                                                          )
 
-ds['Q'] = pvcalc.calculate_potential_vorticity(ds['zeta_x'],
-                                               ds['zeta_y'],
-                                               ds['zeta_z'],
-                                               ds['db_dx'],
-                                               ds['db_dy'],
-                                               ds['db_dz'],
-                                               ds,
-                                               grid,
-                                               beta,
-                                               f0
-                                              )
+
+ds['Q'] = pvcalc.calculate_C_potential_vorticity(ds['zeta_x'],
+                                                 ds['zeta_y'],
+                                                 ds['zeta_z'],
+                                                 ds['b'],
+                                                 ds,
+                                                 grid,
+                                                 beta,
+                                                 f0
+                                                 )
+
+
+
+
 
 logging.info('Creating land masks')
 ds['bool_land_mask'] = xr.where(-ds['Depth'] <= ds['Z'], 1, 0)
@@ -140,29 +143,30 @@ logging.info('Creating meridional vorticity slice dataset')
 zetay_slice = ds['zeta_y'].isel(time=slice(-10, -1)).sel(YC=-250e3, method='nearest').mean('time') * slice_nan_land_mask
 zetay_slice.to_netcdf(processed_path / 'zeta_y_slice.nc')
 
-
 logging.info('Creating potential vorticity slice dataset')
 ylats = [-0, -250e3, -500e3]
-Q_slice = ds['Q'].isel(time=-1).sel(YC=ylats, method='ffill') * np.swapaxes(np.tile(slice_nan_land_mask, (len(ylats), 1, 1)), 0, 1)
+Q_slice = ds['Q'].isel(time=-1).sel(YG=ylats, method='ffill') * np.swapaxes(np.tile(slice_nan_land_mask, (len(ylats), 1, 1)), 0, 1)
 Q_slice.to_netcdf(processed_path / 'Q_slice.nc')
 
 
 logging.info('Calculating potential vorticity on a density level')
 Q_t = ds['Q'].isel(time=-1)
-rho_t = ds['rho'].isel(time=-1)
+rho_t = grid.interp(ds['rho'].isel(time=-1), ['X', 'Y', 'Z'], boundary='extend', to={'X': 'left', 'Y': 'left', 'Z': 'right'})
+rho_t.name = 'rho'
 target_rho_levels = ds['rhoRef'].sel(Z=[-2750], method='nearest').values  # -2750 m is the jet core
 
 # Create a 2D mask which sets land points to nan
-masked_rho = rho_t * ds['nan_land_mask']
+masked_rho = ds['rho'].isel(time=-1) * ds['nan_land_mask']
 land_point_zeros = xr.where(masked_rho >= target_rho_levels, 1, 0).sum('Z') # Where zero, land, else water
 target_rho_mask = xr.where(land_point_zeros == 0, np.nan, 1)
 
-Q_on_rho = grid.transform(Q_t.chunk({'Z': -1}),
+Q_on_rho = grid.transform(Q_t.chunk({'Zl': -1}),
                           'Z',
                           target_rho_levels,
-                          target_data=rho_t.chunk({'Z': -1}),
-                          method='linear'
-                         ) * target_rho_mask
+                          target_data=rho_t.chunk({'Zl': -1}),
+                          method='linear',
+                         ) * grid.interp(target_rho_mask, ['X', 'Y'], boundary='extend')
+
 
 logging.info('Saving potential vorticity on a density level dataset')
 Q_on_rho.to_netcdf(processed_path / 'Q_on_rho.nc')

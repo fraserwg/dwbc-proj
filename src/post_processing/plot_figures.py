@@ -15,16 +15,13 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.patches import Rectangle
 from matplotlib import colors, rc
-import cartopy.feature as cfeature
-import cartopy.crs as ccrs
-from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 import cmocean.cm as cmo
 
 
-figure1 = True
-figure2 = True
-thesiscover = True
-figure3 = True
+figure1 = False
+figure2 = False
+thesiscover = False
+figure3 = False
 figure4 = True
 
 
@@ -56,6 +53,10 @@ text_width = 5.5  # in inches
 
 if figure1:
     logging.info('Plotting initial and boundary conditions')
+    
+    import cartopy.feature as cfeature
+    import cartopy.crs as ccrs
+    from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 
     # Open the datasats
     ds_init = xr.open_dataset(processed_path / 'init.nc')
@@ -234,11 +235,11 @@ if figure4:
     Qlim = 4e-11
 
     da_Q_on_rho = xr.open_dataarray(processed_path / 'Q_on_rho.nc')
-    X_bigQ, Y_bigQ = da_Q_on_rho['XC'] * 1e-3, da_Q_on_rho['YC'] * 1e-3
+    X_bigQ, Y_bigQ = da_Q_on_rho['XG'] * 1e-3, da_Q_on_rho['YG'] * 1e-3
     C_bigQ = da_Q_on_rho.values.squeeze()
     
     da_Q_slice = xr.open_dataarray(processed_path / 'Q_slice.nc')
-    X, Z = da_Q_slice['XC'] * 1e-3, -da_Q_slice['Z']
+    X, Z = da_Q_slice['XG'] * 1e-3, -da_Q_slice['Zl']
     
     fig = plt.figure(figsize=(text_width, 23 * cm))
 
@@ -286,9 +287,9 @@ if figure4:
     big_Q_cax = big_Q_ax.pcolormesh(X_bigQ, Y_bigQ, C_bigQ, cmap=Qcmap, shading='nearest',
                                     vmin=-Qlim, vmax=Qlim, rasterized=True)
 
-    slice_ax1.pcolormesh(X, Z, da_Q_slice.isel(YC=0), cmap=Qcmap, shading='nearest', vmin=-Qlim, vmax=Qlim, rasterized=True)
-    slice_ax2.pcolormesh(X, Z, da_Q_slice.isel(YC=1), cmap=Qcmap, shading='nearest', vmin=-Qlim, vmax=Qlim, rasterized=True)
-    slice_ax3.pcolormesh(X, Z, da_Q_slice.isel(YC=2), cmap=Qcmap, shading='nearest', vmin=-Qlim, vmax=Qlim, rasterized=True)
+    slice_ax1.pcolormesh(X, Z, da_Q_slice.isel(YG=0), cmap=Qcmap, shading='nearest', vmin=-Qlim, vmax=Qlim, rasterized=True)
+    slice_ax2.pcolormesh(X, Z, da_Q_slice.isel(YG=1), cmap=Qcmap, shading='nearest', vmin=-Qlim, vmax=Qlim, rasterized=True)
+    slice_ax3.pcolormesh(X, Z, da_Q_slice.isel(YG=2), cmap=Qcmap, shading='nearest', vmin=-Qlim, vmax=Qlim, rasterized=True)
 
 
     big_Q_ax.axhline(0, label='Equator', ls='-', c='k')
