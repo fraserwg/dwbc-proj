@@ -16,16 +16,16 @@ from scipy.io import loadmat
 
 
 logging.info('Setting paths')
-base_path = Path('/work/n01/n01/fwg/dwbc/dwbc-proj')
+base_path = Path('/work/n01/n01/fwg/dwbc-proj')
 data_path = base_path / 'data'
 
 
 logging.info('Loading subsetted stp')
-ds_subset = xr.open_datset(data_path '/interim/subsetted_stp.nc')
+ds_subset = xr.open_dataset(data_path / 'interim/subsetted_stp.nc', decode_times=False)
 
 
 logging.info('Loading gamma_n and converting to xr.Dataset')
-gamma_n = loadmat('gamma_n.mat')['gamma_n'].squeeze()
+gamma_n = loadmat(data_path / 'interim/gamma_n.mat')['gamma_n'].squeeze()
 ds_subset['gamma_n'] = (('depth', 'lat', 'lon'), gamma_n)
 ds_subset['mn_gamma_n'] = ds_subset['gamma_n'].mean(['lat', 'lon'])
 

@@ -16,7 +16,7 @@ from scipy.io import savemat
 
 
 logging.info('Setting paths')
-base_path = Path('/work/n01/n01/fwg/dwbc/dwbc-proj')
+base_path = Path('/work/n01/n01/fwg/dwbc-proj')
 data_path = base_path / 'data'
 
 
@@ -29,7 +29,7 @@ ds['pressure'] = gsw.p_from_z(ds['depth'], ds['lat'])
 
 
 logging.info('Archiving climatological dataset')
-ds.to_netcdf(data_path / 'raw/climatological_stp.nc')
+ds.to_netcdf(data_path / 'raw/climatological_stp.nc', engine='h5netcdf')
 
 
 logging.info('Subsetting climatological dataset')
