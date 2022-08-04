@@ -14,15 +14,15 @@ import xarray as xr
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.patches import Rectangle
-from matplotlib import colors, rc
+from matplotlib import rc
 import cmocean.cm as cmo
 
 
-figure1 = False
+figure1 = True
 figure2 = False
 thesiscover = False
 figure3 = False
-figure4 = True
+figure4 = False
 
 
 logging.info('Setting paths')
@@ -65,14 +65,14 @@ if figure1:
     ds_climatological_gamma_n = xr.open_dataset(processed_path / 'climatological_gamman.nc', decode_times=False)
 
     # Set up the canvas
-    fig = plt.figure(figsize=(text_width, 8.5 * cm))
+    fig = plt.figure(figsize=(text_width, 7.3 * cm))
 
-    gs = gridspec.GridSpec(2, 2,
+    gs = gridspec.GridSpec(3, 2,
                            width_ratios=[1, 1],
-                           height_ratios=[1, 1/16]
+                           height_ratios=[1/16, 1, 1/16]
                            )
 
-    ax1 = fig.add_subplot(gs[0, 0], projection=ccrs.PlateCarree())
+    ax1 = fig.add_subplot(gs[:2, 0], projection=ccrs.PlateCarree())
 
     # Plot the bathymetry
     cax_bathy = ax1.pcolormesh(ds_bathymetry['lon'],
@@ -111,21 +111,26 @@ if figure1:
     ax1.xaxis.set_major_formatter(lon_formatter)
     ax1.yaxis.set_major_formatter(lat_formatter)
 
+    axtopL = fig.add_subplot(gs[0, 0])
+    axtopL.axis("off")
+
     ax1.set_xlabel('Longitude')
     ax1.set_ylabel('Latitude')
-    ax1.set_title('The Tropical Atlantic')
-    ax1.set_title('(a)', loc='left')
+    axtopL.set_title('The Tropical Atlantic')
+    axtopL.set_title('(a)', loc='left')
 
     # Colorbars
-    cbax1 = fig.add_subplot(gs[1, 0])
+    cbax1 = fig.add_subplot(gs[2, 0])
     cb1 = plt.colorbar(cax_bathy, cax=cbax1, label='Depth (m)', orientation='horizontal')
 
     # Initial condition plots
-    ax2 = fig.add_subplot(gs[0, 1])
-    cbax = fig.add_subplot(gs[1, 1])
+    axtopR = fig.add_subplot(gs[0, 1])
+    axtopR.axis("off")
+    ax2 = fig.add_subplot(gs[1, 1])
+    cbax = fig.add_subplot(gs[2, 1])
 
-    ax2.set_title('Initial conditions')
-    ax2.set_title('(b)', loc='left')
+    axtopR.set_title('Initial conditions')
+    axtopR.set_title('(b)', loc='left')
     ax2.set_xlabel('Longitude (km)')
     ax2.set_ylabel('Depth (m)')
 
@@ -340,22 +345,45 @@ if figure3:
     ds_overturning = xr.open_dataset(processed_path / 'overturning.nc')
     #rho_3, zetay_3 = xr.open_dataarray('rho3.nc'), xr.open_dataarray('zeta_y.nc')
     da_zeta_y_slice = xr.open_dataarray(processed_path / 'zeta_y_slice.nc')
+    da_dbdz = xr.open_dataarray(processed_path / 'dbdz_slice.nc').sel(YC=-250e3, method='nearest')
     
-    fig = plt.figure(figsize=(text_width, 8.5 * cm))
+    da_tm = xr.open_dataarray(processed_path / 'toy_strat_data', engine='zarr')
+    
+    fig = plt.figure(figsize=(text_width, 2 * 8.5 * cm))
 
-    gs = gridspec.GridSpec(2, 2,
-                           width_ratios=[1, 1],
-                           height_ratios=[1, 1/16]
+    gst = gridspec.GridSpec(4, 6,
+                           width_ratios=[1, 1, 1, 1, 1, 1],
+                           height_ratios=[1, 1/16, 1, 1/16]
+                           )
+    
+    gsm = gridspec.GridSpec(4, 6,
+                           width_ratios=[1, 1, 1, 1, 1, 1],
+                           height_ratios=[1, 1/16, 1, 1/16]
+                           )
+    
+    gsb = gridspec.GridSpec(4, 6,
+                           width_ratios=[1, 1, 1, 1, 1, 1],
+                           height_ratios=[1, 1/16, 1, 1/16]
                            )
 
-    ax1 = fig.add_subplot(gs[:, 1])
-    ax_overturn = fig.add_subplot(gs[0, 0])
-    cbax = fig.add_subplot(gs[1, 0])
+    gst.update(wspace=4, hspace=0.8)
+    gsm.update(wspace=4, hspace=2.5)
+    gsb.update(wspace=0.5, hspace=0.5)
+
+    ax1 = fig.add_subplot(gsm[:2, 3:])
+    ax_overturn = fig.add_subplot(gst[0, :3])
+    cbax = fig.add_subplot(gsm[1, :3])
     ax2 = ax1.twiny()
 
+    axtm0 = fig.add_subplot(gsb[2, :2])
+    axtm1 = fig.add_subplot(gsb[2, 2:4])
+    axtm2 = fig.add_subplot(gsb[2, 4:6])
+    
+    cbaxtm = fig.add_subplot(gsb[3, :])
+
     # Right hand panel with staircase and zeta_y
-    ax1.plot(ds_overturning['rho'] - 1000, -ds_overturning['Z'], ls='-', c='k', label='$\\sigma(z)$')
-    ax2.plot(ds_overturning['zeta_y'], -ds_overturning['Zl'], ls='-', c='grey', label='$\\zeta_y(z)$')
+    ln1 = ax1.plot(ds_overturning['rho'] - 1000, -ds_overturning['Z'], ls='-', c='k', label='$\\sigma(z)$')
+    ln2 = ax2.plot(ds_overturning['zeta_y'], -ds_overturning['Zl'], ls='-', c='grey', label='$\\zeta_y(z)$')
     ax2.axvline(0, ls=':', c='grey')
 
     ax1.set_xlim(1027.9 - 1000, 1028.15 - 1000)
@@ -363,40 +391,108 @@ if figure3:
 
     ax1.set_ylabel('Depth (m)')
     ax1.set_xlabel('$\\sigma$ (kg$\,$m$^{-3}$)')
-    ax2.set_xlabel('$\\zeta_y$ (s$^{-1}$)', labelpad=10)
+    ax2.set_xlabel('$\\zeta_y$ (s$^{-1}$)')
     ax2.ticklabel_format(axis='x', style='sci', scilimits=(0, 0), useMathText=True)
-    ax2.set_title('(b)', loc='left')
-    ax2.set_title('Staircases & overturning')
+    ax1.set_title('(b)', loc='left')
+    ax1.set_title('Staircases & overturning')
 
     # Left hand panel with zeta_y
     cmo.balance.set_bad('grey')
     zylim = 2.5e-3
-    cax = ax_overturn.pcolormesh(da_zeta_y_slice['XG'] * 1e-3, -da_zeta_y_slice['Zl'], da_zeta_y_slice,
-                           shading='nearest', cmap=cmo.balance, vmin=-zylim, vmax=zylim,
-                           rasterized=True
-                          )
+    cax = ax_overturn.pcolormesh(da_zeta_y_slice['XG'] * 1e-3,
+                                 -da_zeta_y_slice['Zl'],
+                                 da_zeta_y_slice,
+                                 shading='nearest',
+                                 cmap=cmo.balance,
+                                 vmin=-zylim, vmax=zylim,
+                                 rasterized=True)
 
+    ax_overturn.contour(da_dbdz['XC'] * 1e-3,
+                        -da_dbdz['Zl'],
+                        da_dbdz,
+                        levels=[2e-6], colors='k', linewidths=0.5,
+                        vmax=2.1e-6)
+    
     ax_overturn.invert_yaxis()
     ax_overturn.axvline(90, c='magenta')
     ax_overturn.set_xlim(0, 300)
 
     ax_overturn.set_xlabel('Longitude (km)')
     ax_overturn.set_ylabel('Depth (m)')
-    ax_overturn.set_title('Meridional relative vorticity')
+    ax_overturn.set_title('Zonal overturning')
     ax_overturn.set_title('(a)', loc='left')
 
+    ax_overturn.set_ylim(3500, 1500)
+    ax_overturn.set_xlim(20, 180)
     # Colorbar
     cb = plt.colorbar(cax, cax=cbax, label='$\\zeta_y$ (s$^{-1}$)',
                       orientation='horizontal')
     cb.formatter.set_useMathText(True)
     cb.formatter.set_powerlimits((0, 0))
 
+    # Toy model plots
+    axtm0.set_title('(c)', loc='left')
+    axtm1.set_title('(d)', loc='left')
+    axtm2.set_title('(e)', loc='left')
+    
+    axtm0.set_title('0 days')
+    axtm1.set_title('7 days')
+    axtm2.set_title('14 days')
+    
+    axtm1.set_xlabel('Longitude (km)')
+    axtm0.set_ylabel('Depth (m)')
+
+    axtm1.set_yticklabels([])
+    axtm2.set_yticklabels([])
+    
+    axtm0.set_xlim(-50, 50)
+    axtm1.set_xlim(-50, 50)
+    axtm2.set_xlim(-50, 50)
+    
+    axtm0.set_ylim(600, 0)
+    axtm1.set_ylim(600, 0)
+    axtm2.set_ylim(600, 0)
+    
+    cax =axtm0.pcolormesh(da_tm['X'] * 1e-3,
+                         -da_tm['Z'],
+                         da_tm.isel(time=0),
+                         shading='nearest',
+                         cmap=cmo.matter,
+                         vmin=0, vmax=4e-6,
+                         rasterized=True)
+
+    axtm1.pcolormesh(da_tm['X'] * 1e-3,
+                     -da_tm['Z'],
+                     da_tm.isel(time=1),
+                     shading='nearest',
+                     cmap=cmo.matter,
+                     vmin=0, vmax=4e-6,
+                     rasterized=True)
+    
+    axtm2.pcolormesh(da_tm['X'] * 1e-3,
+                     -da_tm['Z'],
+                     da_tm.isel(time=2),
+                     shading='nearest',
+                     cmap=cmo.matter,
+                     vmin=0, vmax=4e-6,
+                     rasterized=True)
+    
+
+    
+    cbtm = fig.colorbar(cax, cax=cbaxtm,
+                        orientation='horizontal',
+                        label='$N^2$ (s$^{-2}$)')
+
+    cbtm.formatter.set_useMathText(True)
+    cbtm.formatter.set_powerlimits((0, 0))
+    
     # Figure stuff
-    fig.legend(loc='upper right', bbox_to_anchor=(0.95, 0.79))
-    #fig.suptitle('Staircases & overturning', weight='bold', y=0.97)
+    ax1.legend(loc='lower left', handles=ln1 + ln2)
 
-    fig.tight_layout()
-
+    #fig.tight_layout()
+    
     fig.savefig(figure_path / 'Figure3.pdf', dpi=dpi)
     
 logging.info('Plotting complete')
+
+fig
