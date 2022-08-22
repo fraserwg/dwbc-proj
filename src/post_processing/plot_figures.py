@@ -18,11 +18,11 @@ from matplotlib import rc
 import cmocean.cm as cmo
 
 
-figure1 = True
+figure1 = False
 figure2 = False
 thesiscover = False
 figure3 = True
-figure4 = True
+figure4 = False
 
 
 logging.info('Setting paths')
@@ -65,7 +65,8 @@ if figure1:
     ds_climatological_gamma_n = xr.open_dataset(processed_path / 'climatological_gamman.nc', decode_times=False)
 
     # Set up the canvas
-    fig = plt.figure(figsize=(text_width, 7.3 * cm))
+    pad = 35
+    fig = plt.figure(figsize=(text_width, 9 * cm))
 
     gs = gridspec.GridSpec(3, 2,
                            width_ratios=[1, 1],
@@ -116,8 +117,8 @@ if figure1:
 
     ax1.set_xlabel('Longitude')
     ax1.set_ylabel('Latitude')
-    axtopL.set_title('The Tropical Atlantic')
-    axtopL.set_title('(a)', loc='left')
+    axtopL.set_title('The Tropical Atlantic', pad=pad)
+    axtopL.set_title('(a)', loc='left', pad=pad)
 
     # Colorbars
     cbax1 = fig.add_subplot(gs[2, 0])
@@ -126,11 +127,12 @@ if figure1:
     # Initial condition plots
     axtopR = fig.add_subplot(gs[0, 1])
     axtopR.axis("off")
-    ax2 = fig.add_subplot(gs[1, 1])
+    ax2 = fig.add_subplot(gs[0:2, 1])
     cbax = fig.add_subplot(gs[2, 1])
 
-    axtopR.set_title('Initial conditions')
-    axtopR.set_title('(b)', loc='left')
+    
+    axtopR.set_title('Initial conditions', pad=pad)
+    axtopR.set_title('(b)', loc='left', pad=pad)
     ax2.set_xlabel('Longitude (km)')
     ax2.set_ylabel('Depth (m)')
 
@@ -457,6 +459,8 @@ if figure3:
     axtm1.set_ylim(600, 0)
     axtm2.set_ylim(600, 0)
     
+    psi = np.exp(-da_tm['X'] ** 2 / 2 / (25e3) ** 2) * np.sin(2 * np.pi / 200 * da_tm['Z'])
+    
     cax = axtm0.pcolormesh(da_tm['X'] * 1e-3,
                           -da_tm['Z'],
                           da_tm.isel(time=0),
@@ -464,6 +468,13 @@ if figure3:
                           cmap=cmo.matter,
                           vmin=0, vmax=4e-6,
                           rasterized=True)
+    
+    axtm0.contour(da_tm['X'] * 1e-3,
+                  -da_tm['Z'],
+                  psi.transpose(),
+                  cmap=cmo.balance,
+                  levels=[-0.8, -0.4, 0, 0.4, 0.8],
+                  vmin=-1, vmax=1)
 
     axtm1.pcolormesh(da_tm['X'] * 1e-3,
                      -da_tm['Z'],
@@ -498,5 +509,3 @@ if figure3:
     fig.savefig(figure_path / 'Figure3.pdf', dpi=dpi)
     
 logging.info('Plotting complete')
-
-fig
