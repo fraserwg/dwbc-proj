@@ -44,8 +44,8 @@ scluster = SLURMCluster(queue='standard',
                         job_cpu=128,
                         log_directory=log_path,
                         local_directory=dask_worker_path,
-                        cores=128,
-                        processes=32,  # Can change this
+                        cores=64,
+                        processes=16,  # Can change this
                         memory="256 GiB",
                         header_skip= ['#SBATCH --mem='],  
                         walltime="00:20:00",
@@ -57,7 +57,7 @@ scluster = SLURMCluster(queue='standard',
                        )
 
 client = Client(scluster)
-scluster.scale(jobs=1)
+scluster.scale(jobs=4)
 
 
 logging.info('Reading in model parameters from the namelist')

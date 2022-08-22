@@ -32,7 +32,7 @@ dask_worker_path = base_path / 'src/post_processing/.tmp/dask-worker-space'
 env_path = Path('/work/n01/n01/fwg/dwbc-proj/dwbc-proj/bin/activate')
 run_path = base_path / 'data/raw/run'
 processed_path = base_path / 'data/processed'
-out_path = processed_path / 'stratification_slices'
+out_path = processed_path / 'stratification_slices.zarr'
 
 # Check paths exist etc.
 if not log_path.exists(): log_path.mkdir()
