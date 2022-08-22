@@ -21,8 +21,8 @@ import cmocean.cm as cmo
 figure1 = True
 figure2 = False
 thesiscover = False
-figure3 = False
-figure4 = False
+figure3 = True
+figure4 = True
 
 
 logging.info('Setting paths')
@@ -162,7 +162,7 @@ if figure1:
                           ls='--'
                          )
 
-    axins.set_xlabel('$\\sigma$ (kg$\,$m$^{-3}$)', labelpad=3, loc='center')
+    axins.set_xlabel('$\\gamma^n$ (kg$\,$m$^{-3}$)', labelpad=3, loc='center')
     axins.set_xlim(20,29)
     axins.set_xticks(range(22, 29))
 
@@ -171,6 +171,7 @@ if figure1:
 
     fig.tight_layout()
     fig.savefig(figure_path / 'Figure1.pdf', dpi=dpi)
+    fig.show()
 
     
 if figure2:
@@ -221,7 +222,7 @@ if figure2:
 
     ax2.axvline(90, c='magenta')
 
-    cb = plt.colorbar(cax, cax=cbax, orientation='horizontal', label='$\partial_z$b (m$\,$s$^{-2})$')
+    cb = plt.colorbar(cax, cax=cbax, orientation='horizontal', label='$\partial_z$b (s$^{-2})$')
     cb.formatter.set_useMathText(True)
     
     yticks = [0, 1000, 2000, 3000, 4000]
@@ -265,7 +266,7 @@ if figure4:
     slice_cbax = fig.add_subplot(gs[3, :])
     #big_cbax = fig.add_subplot(gs[0:, 0])
 
-    big_Q_ax.set_title('$\sigma = 28.04$')
+    big_Q_ax.set_title('$\gamma^n = 28.04$')
     slice_ax1.set_title('Equator')
     slice_ax2.set_title('250 km South')
     slice_ax3.set_title('500 km South')
@@ -347,27 +348,30 @@ if figure3:
     da_zeta_y_slice = xr.open_dataarray(processed_path / 'zeta_y_slice.nc')
     da_dbdz = xr.open_dataarray(processed_path / 'dbdz_slice.nc').sel(YC=-250e3, method='nearest')
     
-    da_tm = xr.open_dataarray(processed_path / 'toy_strat_data', engine='zarr')
+    da_tm = xr.open_dataarray(processed_path / 'toy_strat_data.zarr', engine='zarr')
     
     fig = plt.figure(figsize=(text_width, 2 * 8.5 * cm))
 
+    width_ratios = [1, 1, 1, 1, 1, 1]
+    height_ratios = [1, 1/16, 0.6, 1/16]
+    
     gst = gridspec.GridSpec(4, 6,
-                           width_ratios=[1, 1, 1, 1, 1, 1],
-                           height_ratios=[1, 1/16, 1, 1/16]
+                           width_ratios=width_ratios,
+                           height_ratios=height_ratios
                            )
     
     gsm = gridspec.GridSpec(4, 6,
-                           width_ratios=[1, 1, 1, 1, 1, 1],
-                           height_ratios=[1, 1/16, 1, 1/16]
+                           width_ratios=width_ratios,
+                           height_ratios=height_ratios
                            )
     
     gsb = gridspec.GridSpec(4, 6,
-                           width_ratios=[1, 1, 1, 1, 1, 1],
-                           height_ratios=[1, 1/16, 1, 1/16]
+                           width_ratios=width_ratios,
+                           height_ratios=height_ratios
                            )
 
-    gst.update(wspace=4, hspace=0.8)
-    gsm.update(wspace=4, hspace=2.5)
+    gst.update(wspace=4, hspace=1.1)
+    gsm.update(wspace=4, hspace=2.25)
     gsb.update(wspace=0.5, hspace=0.5)
 
     ax1 = fig.add_subplot(gsm[:2, 3:])
@@ -382,15 +386,15 @@ if figure3:
     cbaxtm = fig.add_subplot(gsb[3, :])
 
     # Right hand panel with staircase and zeta_y
-    ln1 = ax1.plot(ds_overturning['rho'] - 1000, -ds_overturning['Z'], ls='-', c='k', label='$\\sigma(z)$')
-    ln2 = ax2.plot(ds_overturning['zeta_y'], -ds_overturning['Zl'], ls='-', c='grey', label='$\\zeta_y(z)$')
+    ln1 = ax1.plot(ds_overturning['rho'] - 1000, -ds_overturning['Z'], ls='-', c='k', label='$\\gamma^n(z)$')
+    ln2 = ax2.plot(ds_overturning['zeta_y'], -ds_overturning['Zl'], ls='-', c='tab:orange', label='$\\zeta_y(z)$')
     ax2.axvline(0, ls=':', c='grey')
 
     ax1.set_xlim(1027.9 - 1000, 1028.15 - 1000)
     ax1.set_ylim((ds_overturning['Depth'] - 16), 1500)
 
     ax1.set_ylabel('Depth (m)')
-    ax1.set_xlabel('$\\sigma$ (kg$\,$m$^{-3}$)')
+    ax1.set_xlabel('$\\gamma^n$ (kg$\,$m$^{-3}$)')
     ax2.set_xlabel('$\\zeta_y$ (s$^{-1}$)')
     ax2.ticklabel_format(axis='x', style='sci', scilimits=(0, 0), useMathText=True)
     ax1.set_title('(b)', loc='left')
@@ -410,7 +414,7 @@ if figure3:
     ax_overturn.contour(da_dbdz['XC'] * 1e-3,
                         -da_dbdz['Zl'],
                         da_dbdz,
-                        levels=[2e-6], colors='k', linewidths=0.5,
+                        levels=[2e-6], colors='k', linewidths=1.25,
                         vmax=2.1e-6)
     
     ax_overturn.invert_yaxis()
@@ -436,8 +440,8 @@ if figure3:
     axtm2.set_title('(e)', loc='left')
     
     axtm0.set_title('0 days')
-    axtm1.set_title('7 days')
-    axtm2.set_title('14 days')
+    axtm1.set_title('14 days')
+    axtm2.set_title('28 days')
     
     axtm1.set_xlabel('Longitude (km)')
     axtm0.set_ylabel('Depth (m)')
@@ -453,17 +457,17 @@ if figure3:
     axtm1.set_ylim(600, 0)
     axtm2.set_ylim(600, 0)
     
-    cax =axtm0.pcolormesh(da_tm['X'] * 1e-3,
-                         -da_tm['Z'],
-                         da_tm.isel(time=0),
-                         shading='nearest',
-                         cmap=cmo.matter,
-                         vmin=0, vmax=4e-6,
-                         rasterized=True)
+    cax = axtm0.pcolormesh(da_tm['X'] * 1e-3,
+                          -da_tm['Z'],
+                          da_tm.isel(time=0),
+                          shading='nearest',
+                          cmap=cmo.matter,
+                          vmin=0, vmax=4e-6,
+                          rasterized=True)
 
     axtm1.pcolormesh(da_tm['X'] * 1e-3,
                      -da_tm['Z'],
-                     da_tm.isel(time=1),
+                     da_tm.isel(time=2),
                      shading='nearest',
                      cmap=cmo.matter,
                      vmin=0, vmax=4e-6,
@@ -471,7 +475,7 @@ if figure3:
     
     axtm2.pcolormesh(da_tm['X'] * 1e-3,
                      -da_tm['Z'],
-                     da_tm.isel(time=2),
+                     da_tm.isel(time=4),
                      shading='nearest',
                      cmap=cmo.matter,
                      vmin=0, vmax=4e-6,
@@ -481,7 +485,7 @@ if figure3:
     
     cbtm = fig.colorbar(cax, cax=cbaxtm,
                         orientation='horizontal',
-                        label='$N^2$ (s$^{-2}$)')
+                        label='$\\partial_z b$ (s$^{-2}$)')
 
     cbtm.formatter.set_useMathText(True)
     cbtm.formatter.set_powerlimits((0, 0))
