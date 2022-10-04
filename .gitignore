@@ -9,3 +9,4 @@ data/raw/GEBCO-bathymetry-data
 data/raw/climatological_stp.nc
 data/interim
 data/processed
+figures/*frames
