@@ -11,19 +11,23 @@ from pathlib import Path
 logging.info('Importing third party python libraries')
 import numpy as np
 import xarray as xr
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.patches import Rectangle
 from matplotlib import rc
+from matplotlib import font_manager as fm
 import cmocean.cm as cmo
 
 
-figure1 = False
-figure2 = False
+figure1 = True
+figure2 = True
 thesiscover = False
 figure3 = True
-figure4 = False
+figure4 = True
 
+paper = False
+thesis = True
 
 logging.info('Setting paths')
 base_path = Path('/work/n01/n01/fwg/dwbc-proj')
@@ -32,24 +36,49 @@ processed_path = base_path / 'data/processed'
 figure_path = base_path / 'figures'
 
 
-logging.info('Setting plotting defaults')
-SMALL_SIZE = 8
-MEDIUM_SIZE = 8
-BIGGER_SIZE = 8
-rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
-plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+if paper:
+    SMALL_SIZE = 8
+    MEDIUM_SIZE = 8
+    BIGGER_SIZE = 8
+    rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
+    plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+    plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+    plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+    plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+    plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+    plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+    plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+    text_width = 5.5  # in inches
 
-cm = 1/2.54
-dpi = 300
+    cm = 1/2.54
+    dpi = 300
+
+elif thesis:
+    # fonts
+    fpath = Path('/home/n01/n01/fwg/.local/share/fonts/PTSans-Regular.ttf')
+    assert fpath.exists()
+    font_prop = fm.FontProperties(fname=fpath)
+    plt.rcParams['font.family'] = font_prop.get_family()
+    plt.rcParams['font.sans-serif'] = [font_prop.get_name()]
+
+    # font size
+    mpl.use("pgf")
+    plt.rc('xtick', labelsize='8')
+    plt.rc('ytick', labelsize='8')
+    plt.rc('text', usetex=False)
+    plt.rcParams['axes.titlesize'] = 10
+    plt.rcParams["text.latex.preamble"] = "\\usepackage{euler} \\usepackage{paratype}  \\usepackage{mathfont} \\mathfont[digits]{PT Sans}"
+    plt.rcParams["pgf.preamble"] = plt.rcParams["text.latex.preamble"]
+    plt.rc('text', usetex=False)
 
 
-text_width = 5.5  # in inches
+
+    # output
+    dpi = 600
+    text_width = 6
+
+
+
 
 if figure1:
     logging.info('Plotting initial and boundary conditions')
@@ -66,7 +95,7 @@ if figure1:
 
     # Set up the canvas
     pad = 35
-    fig = plt.figure(figsize=(text_width, 9 * cm))
+    fig = plt.figure(figsize=(text_width, 4))#9 * cm))
 
     gs = gridspec.GridSpec(3, 2,
                            width_ratios=[1, 1],
@@ -164,7 +193,10 @@ if figure1:
                           ls='--'
                          )
 
-    axins.set_xlabel('$\\gamma^n$ (kg$\,$m$^{-3}$)', labelpad=3, loc='center')
+    axins.set_xlabel('$\\gamma^n$ (kg$\,$m$^{-3}$)',
+                     labelpad=3,
+                     loc='center',
+                     usetex=True)
     axins.set_xlim(20,29)
     axins.set_xticks(range(22, 29))
 
@@ -182,7 +214,7 @@ if figure2:
     da_dbdz = xr.open_dataarray(processed_path / 'dbdz_slice.nc')
     X, Z = da_dbdz['XC'] * 1e-3, -da_dbdz['Zl']
     
-    fig = plt.figure(figsize=(text_width, 8.5 * cm))
+    fig = plt.figure(figsize=(text_width, 3.25))#8.5 * cm))
 
     gs = gridspec.GridSpec(2, 3,
                            width_ratios=[1, 1, 1],
@@ -224,9 +256,9 @@ if figure2:
 
     ax2.axvline(90, c='magenta')
 
-    cb = plt.colorbar(cax, cax=cbax, orientation='horizontal', label='$\partial_z$b (s$^{-2})$')
+    cb = plt.colorbar(cax, cax=cbax, orientation='horizontal')
     cb.formatter.set_useMathText(True)
-    
+    cb.set_label("$\partial_z$b (s$^{-2})$", usetex=True)
     yticks = [0, 1000, 2000, 3000, 4000]
     ax1.set_yticks(yticks)
 
@@ -249,7 +281,7 @@ if figure4:
     da_Q_slice = xr.open_dataarray(processed_path / 'Q_slice.nc')
     X, Z = da_Q_slice['XG'] * 1e-3, -da_Q_slice['Zl']
     
-    fig = plt.figure(figsize=(text_width, 23 * cm))
+    fig = plt.figure(figsize=(text_width, 7))#23 * cm))
 
     gs = gridspec.GridSpec(4, 2,
                            width_ratios=[1, 1],
@@ -268,7 +300,7 @@ if figure4:
     slice_cbax = fig.add_subplot(gs[3, :])
     #big_cbax = fig.add_subplot(gs[0:, 0])
 
-    big_Q_ax.set_title('$\gamma^n = 28.04$')
+    big_Q_ax.set_title('$\gamma^n = 28.04$', usetex=True)
     slice_ax1.set_title('Equator')
     slice_ax2.set_title('250 km South')
     slice_ax3.set_title('500 km South')
@@ -319,8 +351,10 @@ if figure4:
     slice_ax2.invert_yaxis()
     slice_ax3.invert_yaxis()
 
-    slice_cb = plt.colorbar(big_Q_cax, cax=slice_cbax, orientation='horizontal', label='Q (s$^{-3}$)')
+    slice_cb = plt.colorbar(big_Q_cax, cax=slice_cbax,
+                            orientation="horizontal")
     slice_cb.formatter.set_useMathText(True)
+    slice_cb.set_label("$Q$ (s$^{-3}$", usetex=True)
 
     big_Q_ax.legend(loc='upper right')
 
@@ -352,7 +386,7 @@ if figure3:
     
     da_tm = xr.open_dataarray(processed_path / 'toy_strat_data.zarr', engine='zarr')
     
-    fig = plt.figure(figsize=(text_width, 2 * 8.5 * cm))
+    fig = plt.figure(figsize=(text_width, 6)) #2 * 8.5 * cm))
 
     width_ratios = [1, 1, 1, 1, 1, 1]
     height_ratios = [1, 1/16, 0.6, 1/16]
@@ -389,18 +423,18 @@ if figure3:
 
     # Right hand panel with staircase and zeta_y
     ln1 = ax1.plot(ds_overturning['rho'] - 1000, -ds_overturning['Z'], ls='-', c='k', label='$\\gamma^n(z)$')
-    ln2 = ax2.plot(ds_overturning['zeta_y'], -ds_overturning['Zl'], ls='-', c='tab:orange', label='$\\zeta_y(z)$')
+    ln2 = ax2.plot(ds_overturning['zeta_y'], -ds_overturning['Zl'], ls='-', c='tab:orange', label='$\\xi_y(z)$')
     ax2.axvline(0, ls=':', c='grey')
 
     ax1.set_xlim(1027.9 - 1000, 1028.15 - 1000)
     ax1.set_ylim((ds_overturning['Depth'] - 16), 1500)
 
     ax1.set_ylabel('Depth (m)')
-    ax1.set_xlabel('$\\gamma^n$ (kg$\,$m$^{-3}$)')
-    ax2.set_xlabel('$\\zeta_y$ (s$^{-1}$)')
+    ax1.set_xlabel('$\\gamma^n$ (kg$\,$m$^{-3}$)', usetex=True)
+    ax2.set_xlabel('$\\xi_y$ (s$^{-1}$)', usetex=True)
     ax2.ticklabel_format(axis='x', style='sci', scilimits=(0, 0), useMathText=True)
     ax1.set_title('(b)', loc='left')
-    ax1.set_title('Staircases & overturning')
+    ax1.set_title('Staircases \& overturning')
 
     # Left hand panel with zeta_y
     cmo.balance.set_bad('grey')
@@ -431,8 +465,9 @@ if figure3:
     ax_overturn.set_ylim(3500, 1500)
     ax_overturn.set_xlim(20, 180)
     # Colorbar
-    cb = plt.colorbar(cax, cax=cbax, label='$\\zeta_y$ (s$^{-1}$)',
+    cb = plt.colorbar(cax, cax=cbax,
                       orientation='horizontal')
+    cb.set_label("$\\xi_y$ (s$^{-1}$)", usetex=True)
     cb.formatter.set_useMathText(True)
     cb.formatter.set_powerlimits((0, 0))
 
@@ -495,15 +530,15 @@ if figure3:
 
     
     cbtm = fig.colorbar(cax, cax=cbaxtm,
-                        orientation='horizontal',
-                        label='$\\partial_z b$ (s$^{-2}$)')
-
+                        orientation='horizontal')
+    cbtm.set_label("$\\partial_z b$ (s$^{-2}$)", usetex=True)
     cbtm.formatter.set_useMathText(True)
     cbtm.formatter.set_powerlimits((0, 0))
     
     # Figure stuff
+    plt.rc('text', usetex=True)
     ax1.legend(loc='lower left', handles=ln1 + ln2)
-
+    plt.rc('text', usetex=False)
     #fig.tight_layout()
     
     fig.savefig(figure_path / 'Figure3.pdf', dpi=dpi)
