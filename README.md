@@ -1,5 +1,5 @@
 # dwbc-proj
-This git repository contains code and post-processing scripts used to produce the data and figures in Goldsworth et al. (2022).
+This git repository contains code and post-processing scripts used to produce the data and figures in Goldsworth et al. (2022). It also contains the codes used to generate figures and data for chapter 3 of my thesis.
 
 ## Requirements
 The file `requirements.txt` details the dependencies of this repository. A python virtual environment should easily be creatable from it using `pip`. 
