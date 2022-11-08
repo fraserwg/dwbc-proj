@@ -101,7 +101,7 @@ def plot_pv(nt):
     ax.set_xlabel('Longitude (km)')
     ax.set_ylabel('Lattitude (km)')
     ax.set_title('t = {:.2f} days'.format(tdays))
-    
+    ax.set_ylim(-1500, 500)
     ax.set_aspect('equal')
     #fig.tight_layout()
     

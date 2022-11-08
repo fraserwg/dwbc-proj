@@ -18,23 +18,40 @@ from matplotlib.patches import Rectangle
 from matplotlib import rc
 from matplotlib import font_manager as fm
 import cmocean.cm as cmo
+import dask
+#from dask.distributed import Client, LocalCluster
+#from dask_jobqueue import SLURMCluster
 
 
-figure1 = True
-figure2 = True
+figure1 = False
+figure2 = False
 thesiscover = False
-figure3 = True
-figure4 = True
+figure3 = False
+figure4 = False
 
-paper = False
-thesis = True
+figure2and3NS = False
+figure4NS = False
+
+figure2and3_2km = False
+figure4_2km = False
+
+anim_figure2 = False
+anim_figure3_bot = False
+anim_figure4 = False
+
+paper = True
+thesis = False
+
+assert paper != thesis
 
 logging.info('Setting paths')
 base_path = Path('/work/n01/n01/fwg/dwbc-proj')
 raw_path = base_path / 'data/raw'
 processed_path = base_path / 'data/processed'
-figure_path = base_path / 'figures'
-
+log_path = base_path / "src/.tmp/slurm-out"
+dask_worker_path = base_path / "src/.tmp/"
+env_path = base_path / "dwbc-proj/bin/activate"
+figure_path = base_path / "figures"
 
 if paper:
     SMALL_SIZE = 8
@@ -88,7 +105,7 @@ if figure1:
     from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 
     # Open the datasats
-    ds_init = xr.open_dataset(processed_path / 'init.nc')
+    ds_init = xr.open_dataset(processed_path / f'init.zarr', engine="zarr")
     ds_bathymetry = xr.open_dataset(raw_path / 'GEBCO-bathymetry-data/gebco_2021_n30.0_s-30.0_w-85.0_e-10.0.nc')
     ds_bathymetry = ds_bathymetry.coarsen(lon=5, lat=5, boundary='trim').mean()
     ds_climatological_gamma_n = xr.open_dataset(processed_path / 'climatological_gamman.nc', decode_times=False)
@@ -211,7 +228,7 @@ if figure1:
 if figure2:
     logging.info('Plotting stratification slices')
 
-    da_dbdz = xr.open_dataarray(processed_path / 'dbdz_slice.nc')
+    da_dbdz = xr.open_dataarray(processed_path / f'standard/dbdz_slice.zarr', engine="zarr")
     X, Z = da_dbdz['XC'] * 1e-3, -da_dbdz['Zl']
     
     fig = plt.figure(figsize=(text_width, 3.25))#8.5 * cm))
@@ -258,133 +275,37 @@ if figure2:
 
     cb = plt.colorbar(cax, cax=cbax, orientation='horizontal')
     cb.formatter.set_useMathText(True)
-    cb.set_label("$\partial_z$b (s$^{-2})$", usetex=True)
+    cb.set_label("$\partial_z b$ (s$^{-2})$", usetex=True)
     yticks = [0, 1000, 2000, 3000, 4000]
     ax1.set_yticks(yticks)
 
     fig.tight_layout()
 
     fig.savefig(figure_path / 'Figure2.pdf', dpi=dpi)
-
-
-if figure4:
-    logging.info('Plotting potential vorticity')
     
-    cmo.curl.set_bad('grey')
-    Qcmap = cmo.curl
-    Qlim = 4e-11
 
-    da_Q_on_rho = xr.open_dataarray(processed_path / 'Q_on_rho.nc')
-    X_bigQ, Y_bigQ = da_Q_on_rho['XG'] * 1e-3, da_Q_on_rho['YG'] * 1e-3
-    C_bigQ = da_Q_on_rho.values.squeeze()
+# if figure4 and thesiscover:
+#     logging.info('Plotting thesis cover image')
     
-    da_Q_slice = xr.open_dataarray(processed_path / 'Q_slice.nc')
-    X, Z = da_Q_slice['XG'] * 1e-3, -da_Q_slice['Zl']
-    
-    fig = plt.figure(figsize=(text_width, 7))#23 * cm))
+#     fig, ax = plt.subplots(frameon=True, figsize=(12, 12))
 
-    gs = gridspec.GridSpec(4, 2,
-                           width_ratios=[1, 1],
-                           height_ratios=[1, 1, 1, 0.1]
-                           )
-
-    big_Q_ax = fig.add_subplot(gs[:3, 0])
-
-    slice_ax3 = fig.add_subplot(gs[2, 1])
-    slice_ax1 = fig.add_subplot(gs[0, 1], sharex=slice_ax3)
-    slice_ax2 = fig.add_subplot(gs[1, 1], sharex=slice_ax3)
-
-    plt.setp(slice_ax2.get_xticklabels(), visible=False)
-    plt.setp(slice_ax1.get_xticklabels(), visible=False)
-
-    slice_cbax = fig.add_subplot(gs[3, :])
-    #big_cbax = fig.add_subplot(gs[0:, 0])
-
-    big_Q_ax.set_title('$\gamma^n = 28.04$', usetex=True)
-    slice_ax1.set_title('Equator')
-    slice_ax2.set_title('250 km South')
-    slice_ax3.set_title('500 km South')
-
-    big_Q_ax.set_title('(a)', loc='left')
-    slice_ax1.set_title('(b)', loc='left')
-    slice_ax2.set_title('(c)', loc='left')
-    slice_ax3.set_title('(d)', loc='left')
-
-
-    big_Q_ax.set_xlabel('Longitude (km)')
-    slice_ax3.set_xlabel('Longitude (km)')
-
-    big_Q_ax.set_ylabel('Latitude (km)')
-    slice_ax1.set_ylabel('Depth (m)')
-    slice_ax2.set_ylabel('Depth (m)')
-    slice_ax3.set_ylabel('Depth (m)')
-    
-    yticks = [0, 1000, 2000, 3000, 4000]
-    slice_ax1.set_yticks(yticks)
-    slice_ax2.set_yticks(yticks)
-    slice_ax3.set_yticks(yticks)
-
-    big_Q_cax = big_Q_ax.pcolormesh(X_bigQ, Y_bigQ, C_bigQ, cmap=Qcmap, shading='nearest',
-                                    vmin=-Qlim, vmax=Qlim, rasterized=True)
-
-    slice_ax1.pcolormesh(X, Z, da_Q_slice.isel(YG=0), cmap=Qcmap, shading='nearest', vmin=-Qlim, vmax=Qlim, rasterized=True)
-    slice_ax2.pcolormesh(X, Z, da_Q_slice.isel(YG=1), cmap=Qcmap, shading='nearest', vmin=-Qlim, vmax=Qlim, rasterized=True)
-    slice_ax3.pcolormesh(X, Z, da_Q_slice.isel(YG=2), cmap=Qcmap, shading='nearest', vmin=-Qlim, vmax=Qlim, rasterized=True)
-
-
-    big_Q_ax.axhline(0, label='Equator', ls='-', c='k')
-    big_Q_ax.axhline(-250, label='250 km South', ls=':', c='k')
-    big_Q_ax.axhline(-500, label='500 km South', ls='-.', c='k')
-    #big_Q_ax.axhline(-600, label='600 km south', ls='--', c='k')
-    big_Q_ax.scatter(90, -250, label='Profile point', marker='o', c='magenta', linewidths=2)
-
-    slice_ax2.axvline(90, c='magenta')
-
-    slice_ax1.set_xlim(0, 300)
-    slice_ax2.set_xlim(0, 300)
-    slice_ax3.set_xlim(0, 300)
-
-    big_Q_ax.set_aspect('equal')
-    big_Q_ax.set_ylim(-1800, 500)
-
-    slice_ax1.invert_yaxis()
-    slice_ax2.invert_yaxis()
-    slice_ax3.invert_yaxis()
-
-    slice_cb = plt.colorbar(big_Q_cax, cax=slice_cbax,
-                            orientation="horizontal")
-    slice_cb.formatter.set_useMathText(True)
-    slice_cb.set_label("$Q$ (s$^{-3}$", usetex=True)
-
-    big_Q_ax.legend(loc='upper right')
-
-    fig.tight_layout()
-
-    fig.savefig(figure_path / 'Figure4.pdf', dpi=dpi)
-
-    
-if figure4 and thesiscover:
-    logging.info('Plotting thesis cover image')
-    
-    fig, ax = plt.subplots(frameon=True, figsize=(12, 12))
-
-    ax.pcolormesh(X_bigQ, Y_bigQ, C_bigQ, cmap=Qcmap, shading='nearest',vmin=-Qlim, vmax=Qlim, rasterized=True)
-    ax.set_aspect('equal')
-    ax.axis('off')
-    ax.set_xlim(50, 600)
-    fig.tight_layout()
-    fig.savefig(figure_path / 'ThesisCover.png', dpi=600)
+#     ax.pcolormesh(X_bigQ, Y_bigQ, C_bigQ, cmap=Qcmap, shading='nearest',vmin=-Qlim, vmax=Qlim, rasterized=True)
+#     ax.set_aspect('equal')
+#     ax.axis('off')
+#     ax.set_xlim(50, 600)
+#     fig.tight_layout()
+#     fig.savefig(figure_path / 'ThesisCover.png', dpi=600)
     
 
 if figure3:
     logging.info('Plotting overturning mechanisms')
     
-    ds_overturning = xr.open_dataset(processed_path / 'overturning.nc')
-    #rho_3, zetay_3 = xr.open_dataarray('rho3.nc'), xr.open_dataarray('zeta_y.nc')
-    da_zeta_y_slice = xr.open_dataarray(processed_path / 'zeta_y_slice.nc')
-    da_dbdz = xr.open_dataarray(processed_path / 'dbdz_slice.nc').sel(YC=-250e3, method='nearest')
+    ds_overturning = xr.open_dataset(processed_path / f'standard/overturning.zarr', engine="zarr")
+    #rho_3, zetay_3 = xr.open_dataarray('rho3.zarr'), xr.open_dataarray('zeta_y.zarr')
+    da_zeta_y_slice = xr.open_dataarray(processed_path / f'standard/zeta_y_slice.zarr', engine="zarr")
+    da_dbdz = xr.open_dataarray(processed_path / f'standard/dbdz_slice.zarr', engine="zarr").sel(YC=-250e3, method='nearest')
     
-    da_tm = xr.open_dataarray(processed_path / 'toy_strat_data.zarr', engine='zarr')
+    da_tm = xr.open_dataarray(processed_path / 'toy_model/toy_strat_data.zarr', engine='zarr')
     
     fig = plt.figure(figsize=(text_width, 6)) #2 * 8.5 * cm))
 
@@ -434,7 +355,7 @@ if figure3:
     ax2.set_xlabel('$\\xi_y$ (s$^{-1}$)', usetex=True)
     ax2.ticklabel_format(axis='x', style='sci', scilimits=(0, 0), useMathText=True)
     ax1.set_title('(b)', loc='left')
-    ax1.set_title('Staircases \& overturning')
+    ax1.set_title('Staircases & overturning')
 
     # Left hand panel with zeta_y
     cmo.balance.set_bad('grey')
@@ -544,3 +465,611 @@ if figure3:
     fig.savefig(figure_path / 'Figure3.pdf', dpi=dpi)
     
 logging.info('Plotting complete')
+
+if anim_figure2:
+    logging.info('Plotting stratification slice movie')
+
+    da_path = processed_path / 'standard/animations/stratification_slices.zarr'
+    da_dbdz = xr.open_dataarray(da_path, engine="zarr")
+    X, Z = da_dbdz['XC'] * 1e-3, -da_dbdz['Zl']
+    
+    @dask.delayed()
+    def plot_frame(nt, da_dbdz):
+        fig = plt.figure(figsize=(text_width, 3.25))#8.5 * cm))
+
+        gs = gridspec.GridSpec(2, 3,
+                            width_ratios=[1, 1, 1],
+                            height_ratios=[15, 1]
+                            )
+
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax2 = fig.add_subplot(gs[0, 1], sharey=ax1)
+        ax3 = fig.add_subplot(gs[0, 2], sharey=ax1)
+
+        plt.setp(ax2.get_yticklabels(), visible=False)
+        plt.setp(ax3.get_yticklabels(), visible=False)
+
+        cbax = plt.subplot(gs[1, :])
+
+        ax1.set_title('Equator')
+        ax2.set_title('250 km South')
+        ax3.set_title('500 km South')
+
+        ax1.set_title('(a)', loc='left')
+        ax2.set_title('(b)', loc='left')
+        ax3.set_title('(c)', loc='left')
+
+        tdays = float(da_dbdz['time'].isel(time=nt).values) * 1e-9 / 24 / 60 / 60
+        fig.suptitle('t = {:.2f} days'.format(tdays))
+
+        ax1.set_ylabel('Depth (m)')
+        ax1.set_xlabel('Longitude (km)')
+        ax2.set_xlabel('Longitude (km)')
+        ax3.set_xlabel('Longitude (km)')
+
+        cmo.matter.set_bad('grey')
+        cax = ax1.pcolormesh(X, Z, da_dbdz.isel(YC=0, time=nt),
+                            shading='nearest',
+                            cmap=cmo.matter,
+                            vmin=0,
+                            vmax=7.5e-6,
+                            rasterized=True)
+        
+        ax2.pcolormesh(X, Z, da_dbdz.isel(YC=1, time=nt),
+                    shading='nearest',
+                    cmap=cmo.matter,
+                    vmin=0,
+                    vmax=7.5e-6,
+                    rasterized=True)
+        
+        ax3.pcolormesh(X, Z, da_dbdz.isel(YC=2, time=nt),
+                    shading='nearest',
+                    cmap=cmo.matter,
+                    vmin=0,
+                    vmax=7.5e-6,
+                    rasterized=True)
+
+        ax1.invert_yaxis()
+
+        ax1.set_xlim(0, 300)
+        ax2.set_xlim(0, 300)
+        ax3.set_xlim(0, 300)
+
+        ax2.axvline(90, c='magenta')
+
+        cb = plt.colorbar(cax, cax=cbax, orientation='horizontal')
+        cb.formatter.set_useMathText(True)
+        cb.set_label("$\partial_z$b (s$^{-2})$", usetex=True)
+        yticks = [0, 1000, 2000, 3000, 4000]
+        ax1.set_yticks(yticks)
+
+        fig.tight_layout()
+
+        fig_name = 'dbdz{:03d}.png'.format(nt)
+        fig.savefig(figure_path / 'strat_slice_frames2' / fig_name, dpi=dpi)
+        plt.close(fig)
+
+    logging.info('Initialising the dask cluster')
+    # Set up the dask cluster
+    # scluster = SLURMCluster(queue='standard',
+    #                         project="n01-siAMOC",
+    #                         job_cpu=128,
+    #                         log_directory=log_path,
+    #                         local_directory=dask_worker_path,
+    #                         cores=64,
+    #                         processes=8,  # Can change this
+    #                         memory="256 GiB",
+    #                         header_skip= ['#SBATCH --mem='],  
+    #                         walltime="00:20:00",
+    #                         death_timeout=60,
+    #                         interface='hsn0',
+    #                         job_extra=['--qos=short', '--reservation=shortqos'],
+    #                         env_extra=["export PATH=$PATH:/work/n01/n01/fwg/local-sites/texlive/2022/bin/x86_64-linux",
+    #                                 'module load cray-python',
+    #                                 'source {}'.format(str(env_path.absolute()))]
+    #                     )
+
+    # njobs = 1
+    # client = Client(scluster)
+    # scluster.scale(jobs=njobs)
+        
+    # logging.info('Creating list of tasks')
+    # collection = [plot_frame(nt, da_dbdz) for nt in range(da_dbdz.sizes['time'])]
+    [plot_frame(nt, da_dbdz).compute() for nt in range(da_dbdz.sizes['time'])]
+    # logging.info('Computing tasks')
+    # dask.compute(collection)
+
+    # ffmpeg -framerate 15 -i toy_model_frames/toy_dbdz%03d.png -pix_fmt yuv420p Figure3_lower.mp4
+
+if anim_figure3_bot:
+    da = xr.open_dataset(processed_path / "toy_model/toy_strat_data_full.zarr",
+                         engine="zarr")["db_dz"]
+    
+    
+    def plot_frame(nt):
+        tdays = float(da['time'].isel(time=nt).values) / 24 / 60 / 60
+        fig, ax = plt.subplots(figsize=(3,3))
+        cax = ax.pcolormesh(da["X"] * 1e-3,
+                            -da["Z"],
+                            da.isel(time=nt),
+                            cmap=cmo.matter,
+                            vmin=0,
+                            vmax=4e-6)
+
+        ax.invert_yaxis()
+        ax.set_xlabel("Longitude (km)")
+        ax.set_ylabel("Depth (m)")
+
+        ax.set_title('t = {:.2f} days'.format(tdays))
+
+        cb = fig.colorbar(cax, orientation="horizontal", pad=0.2, label="$\partial_z b$ (s$^{-2}$)")
+        cb.formatter.set_useMathText(True)
+        cb.formatter.set_powerlimits((0, 0))
+        fig.tight_layout()
+
+        fig_name = "toy_dbdz{:03d}.png".format(nt)
+        fig.savefig(figure_path / "toy_model_frames" / fig_name, dpi=2 * dpi)
+    
+    for nt in range(da.sizes["time"]):
+        plot_frame(nt)
+
+# ffmpeg -framerate 15 -i toy_model_frames/toy_dbdz%03d.png -pix_fmt yuv420p Figure3_lower.mp4
+
+if anim_figure4:
+
+    Q_on_rho_path = processed_path / "standard/animations/PV_on_rho.zarr"
+    Q_slice_path = processed_path / "standard/animations/PV_slices.zarr"
+    da_Q_on_rho = xr.open_dataarray(Q_on_rho_path, engine="zarr")
+    da_Q_slice = xr.open_dataarray(Q_slice_path, engine="zarr")
+
+    def plot_frame(nt):
+        cmo.curl.set_bad('grey')
+        Qcmap = cmo.curl
+        Qlim = 4e-11
+
+        X_bigQ, Y_bigQ = da_Q_on_rho['XG'] * 1e-3, da_Q_on_rho['YG'] * 1e-3
+        C_bigQ = da_Q_on_rho.isel(time=nt).values.squeeze()
+        
+        X, Z = da_Q_slice['XG'] * 1e-3, -da_Q_slice['Zl']
+        
+        fig = plt.figure(figsize=(text_width, 7))#23 * cm))
+
+        gs = gridspec.GridSpec(4, 2,
+                            width_ratios=[1, 1],
+                            height_ratios=[1, 1, 1, 0.1]
+                            )
+
+        big_Q_ax = fig.add_subplot(gs[:3, 0])
+
+        slice_ax3 = fig.add_subplot(gs[2, 1])
+        slice_ax1 = fig.add_subplot(gs[0, 1], sharex=slice_ax3)
+        slice_ax2 = fig.add_subplot(gs[1, 1], sharex=slice_ax3)
+
+        plt.setp(slice_ax2.get_xticklabels(), visible=False)
+        plt.setp(slice_ax1.get_xticklabels(), visible=False)
+
+        slice_cbax = fig.add_subplot(gs[3, :])
+        #big_cbax = fig.add_subplot(gs[0:, 0])
+
+        big_Q_ax.set_title('$\gamma^n =$~28.04', usetex=True)
+        slice_ax1.set_title('Equator')
+        slice_ax2.set_title('250 km South')
+        slice_ax3.set_title('500 km South')
+
+        big_Q_ax.set_title('(a)', loc='left')
+        slice_ax1.set_title('(b)', loc='left')
+        slice_ax2.set_title('(c)', loc='left')
+        slice_ax3.set_title('(d)', loc='left')
+
+
+        big_Q_ax.set_xlabel('Longitude (km)')
+        slice_ax3.set_xlabel('Longitude (km)')
+
+        big_Q_ax.set_ylabel('Latitude (km)')
+        slice_ax1.set_ylabel('Depth (m)')
+        slice_ax2.set_ylabel('Depth (m)')
+        slice_ax3.set_ylabel('Depth (m)')
+        
+        yticks = [0, 1000, 2000, 3000, 4000]
+        slice_ax1.set_yticks(yticks)
+        slice_ax2.set_yticks(yticks)
+        slice_ax3.set_yticks(yticks)
+
+        big_Q_cax = big_Q_ax.pcolormesh(X_bigQ, Y_bigQ, C_bigQ, cmap=Qcmap, shading='nearest',
+                                        vmin=-Qlim, vmax=Qlim, rasterized=True)
+
+        slice_ax1.pcolormesh(X, Z, da_Q_slice.isel(YG=0, time=nt), cmap=Qcmap,
+                             shading='nearest', vmin=-Qlim, vmax=Qlim, rasterized=True)
+        
+        slice_ax2.pcolormesh(X, Z, da_Q_slice.isel(YG=1, time=nt), cmap=Qcmap,
+                             shading='nearest', vmin=-Qlim, vmax=Qlim, rasterized=True)
+        
+        slice_ax3.pcolormesh(X, Z, da_Q_slice.isel(YG=2, time=nt), cmap=Qcmap,
+                             shading='nearest', vmin=-Qlim, vmax=Qlim, rasterized=True)
+
+
+        big_Q_ax.axhline(0, label='Equator', ls='-', c='k')
+        big_Q_ax.axhline(-250, label='250 km South', ls=':', c='k')
+        big_Q_ax.axhline(-500, label='500 km South', ls='-.', c='k')
+        #big_Q_ax.axhline(-600, label='600 km south', ls='--', c='k')
+        big_Q_ax.scatter(90, -250, label='Profile point', marker='o', c='magenta', linewidths=2)
+
+        slice_ax2.axvline(90, c='magenta')
+
+        slice_ax1.set_xlim(0, 300)
+        slice_ax2.set_xlim(0, 300)
+        slice_ax3.set_xlim(0, 300)
+
+
+        tdays = float(da_Q_on_rho['time'].isel(time=nt).values) * 1e-9 / 24 / 60 / 60
+        title = "t = {:.2f} days".format(tdays)
+        fig.suptitle(title)
+
+        big_Q_ax.set_aspect('equal')
+        big_Q_ax.set_ylim(-1800, 500)
+
+        slice_ax1.invert_yaxis()
+        slice_ax2.invert_yaxis()
+        
+        slice_ax3.invert_yaxis()
+
+        slice_cb = plt.colorbar(big_Q_cax, cax=slice_cbax,
+                                orientation="horizontal")
+        slice_cb.formatter.set_useMathText(True)
+        slice_cb.set_label("$Q$ (s$^{-3})$", usetex=True)
+
+        big_Q_ax.legend(loc='upper right')
+
+        fig.tight_layout()
+
+        fig_name = "full_pv_frames/Q{:03d}.png".format(nt)
+        fig.savefig(figure_path / fig_name, dpi=2 * dpi)
+        plt.close(fig)
+        
+    for nt in range(da_Q_on_rho.sizes["time"]):
+        plot_frame(nt)
+        
+# ffmpeg -framerate 15 -i full_pv_frames/Q%03d.png -pix_fmt yuv420p Figure4.mp4
+
+
+def plot_figure2and3(dbdz_path, overturning_path, zeta_y_path, fig_out_path,
+                     suptitle):
+    da_dbdz = xr.open_dataarray(dbdz_path, engine="zarr")
+    ds_overturning = xr.open_dataset(overturning_path, engine="zarr")
+    da_zeta_y_slice = xr.open_dataarray(zeta_y_path, engine="zarr")
+    
+    # da_dbdz = xr.open_dataarray(processed_path / f'dbdz_slice.zarr').sel(YC=-250e3, method='nearest')
+
+    X, Z = da_dbdz['XC'] * 1e-3, -da_dbdz['Zl']
+    
+    fig = plt.figure(figsize=(text_width, 7))#8.5 * cm))
+    
+    width_ratios = [1, 1, 1, 1, 1, 1]
+    height_ratios = [15, 1, 15, 1]
+    
+    gst = gridspec.GridSpec(4, 6,
+                           width_ratios=width_ratios,
+                           height_ratios=height_ratios
+                           )
+    
+    gsmt = gridspec.GridSpec(4, 6,
+                           width_ratios=width_ratios,
+                           height_ratios=height_ratios
+                           )
+    
+    gsmb = gridspec.GridSpec(4, 6,
+                           width_ratios=width_ratios,
+                           height_ratios=height_ratios
+                           )
+    
+    gsb = gridspec.GridSpec(4, 6,
+                           width_ratios=width_ratios,
+                           height_ratios=height_ratios
+                           )
+
+
+    #gs = gridspec.GridSpec(4, 6,
+    #                       width_ratios=[1, 1, 1, 1, 1, 1],
+    #                       height_ratios=[15, 1, 15, 1]
+     #                      )
+
+    gst.update(wspace=1, hspace=1)
+    gsmt.update(wspace=1, hspace=2)
+    gsmb.update(wspace=4.2, hspace=3)
+    gsb.update(wspace=2.5, hspace=1)
+
+
+    ax1 = fig.add_subplot(gst[0, 0:2])
+    ax2 = fig.add_subplot(gst[0, 2:4], sharey=ax1)
+    ax3 = fig.add_subplot(gst[0, 4:6], sharey=ax1)
+    ax4 = fig.add_subplot(gsb[2, 0:3])
+    ax5 = fig.add_subplot(gsmb[2:4, 3:6])
+
+    plt.setp(ax2.get_yticklabels(), visible=False)
+    plt.setp(ax3.get_yticklabels(), visible=False)
+
+    cbax = plt.subplot(gsmt[1, :])
+    cb_zeta = fig.add_subplot(gsb[3, 0:3])
+    
+    ax1.set_title('Equator')
+    ax2.set_title('250 km South')
+    ax3.set_title('500 km South')
+    ax4.set_title("Zonal overturning")
+    ax5.set_title("Staircases & overturning")
+
+    ax1.set_title('(a)', loc='left')
+    ax2.set_title('(b)', loc='left')
+    ax3.set_title('(c)', loc='left')
+
+    ax1.set_ylabel('Depth (m)')
+    ax1.set_xlabel('Longitude (km)')
+    ax2.set_xlabel('Longitude (km)')
+    ax3.set_xlabel('Longitude (km)')
+
+    cmo.matter.set_bad('grey')
+    cax = ax1.pcolormesh(X, Z, da_dbdz.isel(YC=0), shading='nearest',
+                         cmap=cmo.matter, vmin=0, vmax=7.5e-6, rasterized=True)
+    
+    ax2.pcolormesh(X, Z, da_dbdz.isel(YC=1), shading='nearest',
+                   cmap=cmo.matter, vmin=0, vmax=7.5e-6, rasterized=True)
+    
+    ax3.pcolormesh(X, Z, da_dbdz.isel(YC=2), shading='nearest',
+                   cmap=cmo.matter, vmin=0, vmax=7.5e-6, rasterized=True)
+
+    ax1.invert_yaxis()
+
+    ax1.set_xlim(0, 300)
+    ax2.set_xlim(0, 300)
+    ax3.set_xlim(0, 300)
+
+    ax2.axvline(90, c='magenta')
+
+    cb = plt.colorbar(cax, cax=cbax, orientation='horizontal')
+    cb.formatter.set_useMathText(True)
+    cb.set_label("$\partial_z$b (s$^{-2})$", usetex=True)
+    yticks = [0, 1000, 2000, 3000, 4000]
+    ax1.set_yticks(yticks)
+
+
+    logging.info('Plotting overturning mechanisms')
+        
+    ax6 = ax5.twiny()
+
+    # Right hand panel with staircase and zeta_y
+    ln1 = ax5.plot(ds_overturning['rho'] - 1000, -ds_overturning['Z'],
+                   ls='-', c='k', label='$\\gamma^n(z)$')
+    
+    ln2 = ax6.plot(ds_overturning['zeta_y'], -ds_overturning['Zl'],
+                   ls='-', c='tab:orange', label='$\\xi_y(z)$')
+    
+    ax6.axvline(0, ls=':', c='grey')
+
+    ax5.set_xlim(1027.9 - 1000, 1028.15 - 1000)
+    ax5.set_ylim((ds_overturning['Depth'] - 16), 1500)
+
+    ax5.set_ylabel('Depth (m)')
+    ax5.set_xlabel('$\\gamma^n$ (kg$\,$m$^{-3}$)', usetex=True)
+    ax6.set_xlabel('$\\xi_y$ (s$^{-1}$)', usetex=True)
+    ax6.ticklabel_format(axis='x', style='sci', scilimits=(0, 0), useMathText=True)
+    ax5.set_title('(e)', loc='left')
+    ax5.set_title('Staircases & overturning')
+
+    # # Left hand panel with zeta_y
+    cmo.balance.set_bad('grey')
+    zylim = 2.5e-3
+    cax = ax4.pcolormesh(da_zeta_y_slice['XG'] * 1e-3,
+                         -da_zeta_y_slice['Zl'],
+                         da_zeta_y_slice,
+                         shading='nearest',
+                         cmap=cmo.balance,
+                         vmin=-zylim, vmax=zylim,
+                         rasterized=True)
+
+    ax4.contour(da_dbdz['XC'] * 1e-3,
+                -da_dbdz['Zl'],
+                da_dbdz.sel(YC=-250e3, method='nearest'),
+                levels=[2e-6], colors='k', linewidths=1.25,
+                vmax=2.1e-6)
+    
+    ax4.invert_yaxis()
+    ax4.axvline(90, c='magenta')
+    ax4.set_xlim(0, 300)
+
+    ax4.set_xlabel('Longitude (km)')
+    ax4.set_ylabel('Depth (m)')
+    ax4.set_title('Zonal overturning')
+    ax4.set_title('(d)', loc='left')
+
+    ax4.set_ylim(3500, 1500)
+    ax4.set_xlim(20, 180)
+    # Colorbar
+    cb = plt.colorbar(cax, cax=cb_zeta,
+                      orientation='horizontal')
+    cb.set_label("$\\xi_y$ (s$^{-1}$)", usetex=True)
+    cb.formatter.set_useMathText(True)
+    cb.formatter.set_powerlimits((0, 0))
+
+    
+    # Figure stuff
+    plt.rc('text', usetex=True)
+    ax5.legend(loc='lower left', handles=ln1 + ln2)
+    plt.rc('text', usetex=False)
+    
+    fig.suptitle(suptitle)
+    fig.tight_layout()
+    
+    fig.savefig(fig_out_path, dpi=dpi)
+
+
+
+
+
+
+if figure2and3NS:
+    dbdz_path = processed_path / "NS/dbdz_sliceNS.zarr"
+    overturning_path = processed_path / "NS/overturningNS.zarr"
+    zeta_y_path = processed_path / "NS/zeta_y_sliceNS.zarr"
+    fig_out_path = figure_path / "FigureS4.pdf"
+    suptitle = "No-slip lateral BC"
+
+    plot_figure2and3(dbdz_path, overturning_path, zeta_y_path, fig_out_path,
+                     suptitle)
+
+
+if figure2and3_2km:
+    dbdz_path = processed_path / "2km/dbdz_slice2km.zarr"
+    overturning_path = processed_path / "2km/overturning2km.zarr"
+    zeta_y_path = processed_path / "2km/zeta_y_slice2km.zarr"
+    fig_out_path = figure_path / "FigureS2.pdf"
+    suptitle = "2 km resolution"
+
+    plot_figure2and3(dbdz_path, overturning_path, zeta_y_path, fig_out_path,
+                     suptitle)
+
+
+
+
+def plot_figure4(Q_on_rho_path, Q_slice_path, rho_slice_path, fig_out_path,
+                 suptitle=None):
+    logging.info('Plotting potential vorticity')
+    
+    cmo.curl.set_bad('grey')
+    Qcmap = cmo.curl
+    Qlim = 4e-11
+
+
+    da_Q_on_rho = xr.open_dataarray(Q_on_rho_path, engine="zarr")
+    X_bigQ, Y_bigQ = da_Q_on_rho['XG'] * 1e-3, da_Q_on_rho['YG'] * 1e-3
+    C_bigQ = da_Q_on_rho.values.squeeze()
+    
+    da_Q_slice = xr.open_dataarray(Q_slice_path, engine="zarr")
+    X, Z = da_Q_slice['XG'] * 1e-3, -da_Q_slice['Zl']
+    
+    da_rho = xr.open_dataarray(rho_slice_path, engine="zarr")
+    
+    fig = plt.figure(figsize=(text_width, 7))#23 * cm))
+
+    gs = gridspec.GridSpec(4, 2,
+                           width_ratios=[1, 1],
+                           height_ratios=[1, 1, 1, 0.1]
+                           )
+
+    big_Q_ax = fig.add_subplot(gs[:3, 0])
+
+    slice_ax3 = fig.add_subplot(gs[2, 1])
+    slice_ax1 = fig.add_subplot(gs[0, 1], sharex=slice_ax3)
+    slice_ax2 = fig.add_subplot(gs[1, 1], sharex=slice_ax3)
+
+    plt.setp(slice_ax2.get_xticklabels(), visible=False)
+    plt.setp(slice_ax1.get_xticklabels(), visible=False)
+
+    slice_cbax = fig.add_subplot(gs[3, :])
+    #big_cbax = fig.add_subplot(gs[0:, 0])
+
+    big_Q_ax.set_title('$\gamma^n =$~28.04', usetex=True)
+    slice_ax1.set_title('Equator')
+    slice_ax2.set_title('250 km South')
+    slice_ax3.set_title('500 km South')
+
+    big_Q_ax.set_title('(a)', loc='left')
+    slice_ax1.set_title('(b)', loc='left')
+    slice_ax2.set_title('(c)', loc='left')
+    slice_ax3.set_title('(d)', loc='left')
+
+    big_Q_ax.set_xlabel('Longitude (km)')
+    slice_ax3.set_xlabel('Longitude (km)')
+
+    big_Q_ax.set_ylabel('Latitude (km)')
+    slice_ax1.set_ylabel('Depth (m)')
+    slice_ax2.set_ylabel('Depth (m)')
+    slice_ax3.set_ylabel('Depth (m)')
+    
+    yticks = [0, 1000, 2000, 3000, 4000]
+    slice_ax1.set_yticks(yticks)
+    slice_ax2.set_yticks(yticks)
+    slice_ax3.set_yticks(yticks)
+
+    big_Q_cax = big_Q_ax.pcolormesh(X_bigQ, Y_bigQ, C_bigQ, cmap=Qcmap,
+                                    shading='nearest',
+                                    vmin=-Qlim, vmax=Qlim, rasterized=True)
+
+    slice_ax1.pcolormesh(X, Z, da_Q_slice.isel(YG=0), cmap=Qcmap, shading='nearest', vmin=-Qlim, vmax=Qlim, rasterized=True)
+    
+    slice_ax2.pcolormesh(X, Z, da_Q_slice.isel(YG=1), cmap=Qcmap, shading='nearest', vmin=-Qlim, vmax=Qlim, rasterized=True)
+    
+    slice_ax3.pcolormesh(X, Z, da_Q_slice.isel(YG=2), cmap=Qcmap, shading='nearest', vmin=-Qlim, vmax=Qlim, rasterized=True)
+
+    slice_ax1.contour(da_rho["XC"] * 1e-3, -da_rho["Z"], da_rho.isel(YC=0),
+                      levels=[1028.04], colors=["magenta"], linewidths=1.5, linestyles="dashed")
+    
+    slice_ax2.contour(da_rho["XC"] * 1e-3, -da_rho["Z"], da_rho.isel(YC=1),
+                      levels=[1028.04], colors=["magenta"], linewidths=1.5, linestyles="dashed")
+    
+    slice_ax3.contour(da_rho["XC"] * 1e-3, -da_rho["Z"], da_rho.isel(YC=2),
+                      levels=[1028.04], colors=["magenta"], linewidths=1.5, linestyles="dashed")
+    
+    big_Q_ax.axhline(0, label='Equator', ls='-', c='k')
+    big_Q_ax.axhline(-250, label='250 km South', ls=':', c='k')
+    big_Q_ax.axhline(-500, label='500 km South', ls='-.', c='k')
+    big_Q_ax.axhline(1e12, label="$\\gamma^n =$ 28.04", ls="--", c="magenta")
+    #big_Q_ax.axhline(-600, label='600 km south', ls='--', c='k')
+    big_Q_ax.scatter(90, -250, label='Profile point', marker='o', c='magenta', linewidths=2)
+
+    slice_ax2.axvline(90, c='magenta')
+
+    slice_ax1.set_xlim(0, 300)
+    slice_ax2.set_xlim(0, 300)
+    slice_ax3.set_xlim(0, 300)
+
+    big_Q_ax.set_aspect('equal')
+    big_Q_ax.set_ylim(-1800, 500)
+
+    slice_ax1.invert_yaxis()
+    slice_ax2.invert_yaxis()
+    slice_ax3.invert_yaxis()
+
+    slice_cb = plt.colorbar(big_Q_cax, cax=slice_cbax,
+                            orientation="horizontal")
+    slice_cb.formatter.set_useMathText(True)
+    slice_cb.set_label("$Q$ (s$^{-3}$)", usetex=True)
+
+
+    plt.rc('text', usetex=True)
+    big_Q_ax.legend(loc='upper right')
+    plt.rc('text', usetex=False)
+
+    if suptitle:
+        fig.suptitle(suptitle)
+
+    fig.tight_layout()
+
+    fig.savefig(fig_out_path, dpi=dpi)
+    
+    
+if figure4:
+    Q_on_rho_path = processed_path / "standard/Q_on_rho.zarr"
+    Q_slice_path = processed_path / "standard/Q_slice.zarr"
+    rho_slice_path = processed_path / "standard/rho_slice.zarr"
+    fig_out_path = figure_path / "Figure4.pdf"
+    
+    plot_figure4(Q_on_rho_path, Q_slice_path, rho_slice_path, fig_out_path)
+    
+if figure4NS:
+    Q_on_rho_path = processed_path / "NS/Q_on_rhoNS.zarr"
+    Q_slice_path = processed_path / "NS/Q_sliceNS.zarr"
+    rho_slice_path = processed_path / "NS/rho_sliceNS.zarr"
+    fig_out_path = figure_path / "FigureS5.pdf"
+    suptitle = "No-slip lateral BC"
+    
+    plot_figure4(Q_on_rho_path, Q_slice_path, rho_slice_path, fig_out_path,
+                 suptitle)
+    
+if figure4_2km:
+    Q_on_rho_path = processed_path / "2km/Q_on_rho2km.zarr"
+    Q_slice_path = processed_path / "2km/Q_slice2km.zarr"
+    rho_slice_path = processed_path / "2km/rho_slice2km.zarr"
+    fig_out_path = figure_path / "FigureS3.pdf"
+    suptitle = "2 km resolution"
+    
+    plot_figure4(Q_on_rho_path, Q_slice_path, rho_slice_path, fig_out_path,
+                 suptitle)

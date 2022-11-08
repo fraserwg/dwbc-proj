@@ -47,7 +47,7 @@ scluster = SLURMCluster(queue='standard',
                         log_directory=log_path,
                         local_directory=dask_worker_path,
                         cores=64,
-                        processes=8,  # Can change this
+                        processes=16,  # Can change this
                         memory="256 GiB",
                         header_skip= ['#SBATCH --mem='],  
                         walltime="01:00:00",
@@ -58,7 +58,7 @@ scluster = SLURMCluster(queue='standard',
                                    'source {}'.format(str(env_path.absolute()))]
                        )
 
-njobs = 8
+njobs = 4
 client = Client(scluster)
 scluster.scale(jobs=njobs)
 
@@ -84,7 +84,8 @@ ds_full = xmitgcm.open_mdsdataset(run_path,
 
 
 logging.info('Calculating the stratification')
-Ylats = np.arange(-700e3, 600e3, 100e3)
+# Ylats = np.arange(-700e3, 600e3, 100e3)
+Ylats = [-0, -250e3, -500e3]
 
 with dask.config.set(**{'array.slicing.split_large_chunks': True}):
     ds = ds_full.sel(YC=Ylats, YG=Ylats,  method='nearest')
@@ -98,7 +99,7 @@ _, _, ds['db_dz'] = pvcalc.calculate_grad_buoyancy(ds['b'],
                                                    grid)
 
 da_strat = ds['db_dz'] * grid.interp(ds['maskC'], 'Z', boundary='extend', to='right')
-ds_strat = da_strat.chunk({'time': 1, 'YC': 13, 'XC': 600, 'Zl': 450}).to_dataset(name='db_dz')
+ds_strat = da_strat.chunk({'time': 10, 'YC': 3, 'XC': 600, 'Zl': 450}).to_dataset(name='db_dz')
 
 logging.info('Saving stratification dataset')
 ds_strat.to_zarr(out_path)

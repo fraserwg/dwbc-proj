@@ -13,7 +13,7 @@ processed_path = base_path /'data/processed'
 env_path = base_path / 'dwbc-proj/bin/activate'
 log_path = base_path / 'src/toy_model/.tmp/log.out'
 dask_worker_path = base_path / 'src/toy_model/.tmp/'
-out_path = processed_path / 'toy_strat_data.zarr'
+out_path = processed_path / 'toy_strat_data_full.zarr'
 
 print("base_path = Path('{}')".format(base_path))
 
@@ -131,6 +131,6 @@ for i in range(2, nt):
     db_dz[0, :] = db_dz[1, :]
 
 
-    if i % 2520 == 0:
+    if i % 90 == 0:
         da = db_dz_to_data_array(db_dz)
         da.to_dataset(name='db_dz').to_zarr(out_path, append_dim='time')

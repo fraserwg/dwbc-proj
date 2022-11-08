@@ -116,6 +116,10 @@ slice_nan_land_mask = ds['nan_land_mask'].isel(YC=0).values
 
 ds['bool_land_mask'].isel(YC=0).to_netcdf(processed_path / 'bool_land_mask.nc')
 
+
+logging.info("Saving slice datasets")
+
+
 logging.info('Calculating potential vorticity on a density level')
 Q_t = ds['Q']
 rho_t = grid.interp(ds['rho'], ['X', 'Y', 'Z'], boundary='extend', to={'X': 'left', 'Y': 'left', 'Z': 'right'})
@@ -145,12 +149,12 @@ time_block = 8
 logging.info('Saving iters = 0 to {}'.format(time_block - 1))
 ds_Q.isel(time=slice(0, time_block)).to_zarr(out_path)
 start_iter = time_block
-    
+
 end_iter = int(ds_Q.sizes['time'])
-for tn in range(start_iter, end_iter, time_block):
+for tn in range(start_iter, end_iter, time_block):     
     ds_Qt = ds_Q.isel(time=slice(tn, tn + time_block))
     logging.info('Saving iters = {} to {}'.format(tn, tn + time_block - 1))
     ds_Qt.to_zarr(out_path, append_dim='time')
     scluster.scale(jobs=njobs)
 
-#logging.info('Processing complete')
+logging.info('Processing complete')
